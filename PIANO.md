@@ -75,9 +75,9 @@ Decisioni ✅:
 ## Interfaccia
 
 - **Barra in alto:** Titolo · Sottotitolo · Testo | G · C | Sinonimi. A sinistra il nome del file con lo stato (*salvato*, *modificato*, *non salvato*, ripetuto nel titolo della finestra con un pallino •), a destra il contatore dei refusi e due icone: **Impostazioni** e **Guida**.
-- **File:** Nuovo, Apri, Salva, Salva con nome solo da tastiera (niente menu). Prima di Nuovo, Apri o della chiusura della finestra con modifiche non salvate: *Salva · Non salvare · Annulla*. Si apre anche trascinando un .docx sulla finestra o sull'eseguibile, con "Apri con" o col doppio clic su un file associato (il percorso arriva come argomento da riga di comando). Domande e avvisi sono finestre dell'app, nello stile della pagina.
+- **File:** Nuovo, Apri, Salva, Salva con nome, dal piccolo menu che si apre cliccando sul nome del file o con le scorciatoie. Prima di Nuovo, Apri o della chiusura della finestra con modifiche non salvate: *Salva · Non salvare · Annulla*. Si apre anche trascinando un .docx sulla finestra o sull'eseguibile, con "Apri con" o col doppio clic su un file associato (il percorso arriva come argomento da riga di comando). Domande e avvisi sono finestre dell'app, nello stile della pagina.
 - **Barra in basso:** parole, caratteri, tempo di lettura e lo zoom `− 100% +`.
-- **Caratteri, colonna verticale sul lato destro, nella parte bassa:** È « » ‹ › «…». Quando il pannello Impostazioni è aperto restano coperti.
+- **Caratteri, colonna verticale sul lato destro, nella parte bassa:** È « » «…». Quando il pannello Impostazioni è aperto restano coperti.
 - Mentre si scrive, barre e caratteri si ritirano quasi del tutto.
 
 ## Impostazioni
@@ -142,7 +142,7 @@ Correzioni automatiche mentre scrivi (disattivabili): `<<` → «, `>>` → », 
 
 1. ✅ **Scheletro** — progetto Tauri 2 + Vite + TS, finestra, tema, font incluso, build portable funzionante.
 2. ✅ **Editor** — schema ProseMirror ristretto, barra con titolo/sottotitolo/testo e G/C, caratteri speciali in colonna sul lato destro, avvolgi in « », correzioni automatiche, conteggio parole, ingrandimento del testo, UI che si ritira, pannello Impostazioni, Guida.
-3. ✅ **DOCX** — Nuovo/Apri/Salva/Salva con nome, scrittura e poi lettura, avviso sui contenuti non supportati, test di round-trip. Resta la prova manuale di `docs/esempio.docx` in Word e Google Documenti.
+3. ✅ **DOCX** — Nuovo/Apri/Salva/Salva con nome, scrittura e poi lettura, avviso sui contenuti non supportati, test di round-trip. Provato a mano in Word e Google Documenti. Menu File cliccabile sul nome del file.
 4. **Correttore** — spellbook + it_IT, decorazioni, popover, F7/Alt+Invio, dizionario personale, regole italiane.
 5. **Sinonimi** — thesaurus MyThes, popover, lemma dalla forma flessa (MVP), poi sinonimi già flessi.
 6. **Rifinitura** — salvataggio automatico e recupero dopo crash, impostazioni portable, file recenti, icona, firma dell'eseguibile.

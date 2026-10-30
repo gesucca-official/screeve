@@ -8,7 +8,15 @@
 <body>
 
 <header class="bar">
-  <div class="file" id="file-name">Senza titolo</div>
+  <div class="file-wrap">
+    <button class="file" id="file-name" aria-haspopup="menu" aria-expanded="false" aria-controls="file-menu">Senza titolo</button>
+    <div class="file-menu" id="file-menu" role="menu" aria-label="File">
+      <button role="menuitem" data-file="nuovo">Nuovo <kbd>Ctrl+N</kbd></button>
+      <button role="menuitem" data-file="apri">Apri… <kbd>Ctrl+O</kbd></button>
+      <button role="menuitem" data-file="salva">Salva <kbd>Ctrl+S</kbd></button>
+      <button role="menuitem" data-file="salvaConNome">Salva con nome… <kbd>Ctrl+Maiusc+S</kbd></button>
+    </div>
+  </div>
 
   <nav class="tools" aria-label="Formattazione">
     <div class="row">
@@ -56,8 +64,6 @@
   <button class="glyph" data-char="È" title="È maiuscola — oppure scrivi E' seguito da spazio">È</button>
   <button class="glyph" data-char="«" title="Caporale aperta — oppure scrivi &lt;&lt;">«</button>
   <button class="glyph" data-char="»" title="Caporale chiusa — oppure scrivi &gt;&gt;">»</button>
-  <button class="glyph" data-char="‹" title="Caporale singola aperta">‹</button>
-  <button class="glyph" data-char="›" title="Caporale singola chiusa">›</button>
   <button class="glyph" id="b-wrap" title="Racchiudi la selezione tra caporali (Ctrl+Maiusc+')">«…»</button>
 </nav>
 
@@ -93,7 +99,7 @@
     </ul>
 
     <h3>Caratteri italiani</h3>
-    <p>I pulsanti sul lato destro inseriscono i caratteri scomodi da trovare sulla tastiera: <span class="g">È « » ‹ ›</span>. Il pulsante <span class="g">«…»</span> racchiude tra caporali il testo selezionato.</p>
+    <p>I pulsanti sul lato destro inseriscono i caratteri scomodi da trovare sulla tastiera: <span class="g">È « »</span>. Il pulsante <span class="g">«…»</span> racchiude tra caporali il testo selezionato.</p>
     <p>Con le <b>correzioni automatiche</b> attive puoi anche scrivere <kbd>&lt;&lt;</kbd> per <span class="g">«</span>, <kbd>&gt;&gt;</kbd> per <span class="g">»</span> ed <kbd>E'</kbd> seguito da spazio per <span class="g">È</span>. Si disattivano dalle impostazioni.</p>
 
     <h3>Refusi</h3>
@@ -115,7 +121,7 @@
     <p>Per cambiare aria mentre scrivi, <kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>F</kbd> passa al font successivo senza aprire le impostazioni.</p>
 
     <h3>File</h3>
-    <p>Screeve apre e salva file <b>.docx</b>, che si aprono identici in Word e Google Documenti. In alto a sinistra vedi il nome del file e se è <i>salvato</i> o <i>modificato</i>; prima di chiudere o di aprire un altro documento, Screeve ti chiede se vuoi salvare.</p>
+    <p>Screeve apre e salva file <b>.docx</b>, che si aprono identici in Word e Google Documenti. In alto a sinistra vedi il nome del file e se è <i>salvato</i> o <i>modificato</i>: cliccandoci sopra trovi <b>Nuovo</b>, <b>Apri</b>, <b>Salva</b> e <b>Salva con nome</b>, che hanno anche le loro scorciatoie. Prima di chiudere o di aprire un altro documento, Screeve ti chiede se vuoi salvare.</p>
     <p>Nel file il testo è in Georgia a 12 punti, con paragrafi senza spaziature né rientri: il font che scegli qui serve solo a schermo, e l'impaginazione la rifinisci poi in Word. Titolo e Sottotitolo diventano <i>Titolo 1</i> e <i>Titolo 2</i>.</p>
     <p>Per aprire un documento puoi anche trascinarlo sulla finestra o sull'icona di Screeve, oppure usare <i>Apri con</i> dal menu di Windows. Se contiene elementi che Screeve non gestisce, come tabelle, immagini o note, ti avvisa prima e ti propone di salvare una copia, così l'originale resta intatto.</p>
 

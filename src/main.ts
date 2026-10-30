@@ -42,6 +42,36 @@ const file = gestioneFile({
   },
 });
 
+/* ---------- menu File, sul nome del file ---------- */
+const fileMenu = $('#file-menu');
+const fileItems = () => [...fileMenu.querySelectorAll<HTMLElement>('button')];
+
+function toggleFileMenu(force?: boolean): void {
+  const wasOpen = fileMenu.classList.contains('open');
+  const open = fileMenu.classList.toggle('open', force);
+  $('#file-name').classList.toggle('on', open);
+  $('#file-name').setAttribute('aria-expanded', String(open));
+  if (open) fileItems()[0].focus();
+  else if (wasOpen) view.focus();
+}
+$('#file-name').addEventListener('click', () => toggleFileMenu());
+fileMenu.addEventListener('click', e => {
+  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-file]');
+  if (!b) return;
+  toggleFileMenu(false);
+  file[b.dataset.file as 'nuovo' | 'apri' | 'salva' | 'salvaConNome']();
+});
+fileMenu.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  e.preventDefault();
+  const items = fileItems();
+  const i = items.indexOf(document.activeElement as HTMLElement);
+  items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
+});
+document.addEventListener('mousedown', e => {
+  if (!(e.target as HTMLElement).closest('.file-wrap')) toggleFileMenu(false);
+});
+
 const run = (cmd: Command) => { cmd(view.state, view.dispatch, view); view.focus(); };
 
 /* ---------- barra in alto e caratteri ---------- */
@@ -167,7 +197,8 @@ document.addEventListener('keydown', e => {
   const ctrl = e.ctrlKey && !e.altKey;
   if (e.key === 'F1') { e.preventDefault(); toggleGuide(); return; }
   if (e.key === 'Escape') {
-    if (guide.classList.contains('open')) toggleGuide(false);
+    if (fileMenu.classList.contains('open')) toggleFileMenu(false);
+    else if (guide.classList.contains('open')) toggleGuide(false);
     else if ($('#settings').classList.contains('open')) toggleSettings(false);
     return;
   }
@@ -176,6 +207,7 @@ document.addEventListener('keydown', e => {
   if (ctrl && ['n', 'o', 's'].includes(key)) {
     e.preventDefault();
     if (e.repeat) return;
+    toggleFileMenu(false);
     if (key === 'n') file.nuovo();
     else if (key === 'o') file.apri();
     else if (e.shiftKey) file.salvaConNome();

@@ -21,12 +21,31 @@ body {
 body.typing .bar, body.typing .status, body.typing .chars { opacity: .12; }
 body.typing .bar:hover, body.typing .status:hover, body.typing .chars:hover { opacity: 1; }
 
-.file {
-  font-size: 14px; line-height: 36px; color: var(--ink-soft);
+/* nome del file: è anche il pulsante del menu File */
+.file-wrap { position: relative; justify-self: start; min-width: 0; max-width: 100%; margin-left: -10px; }
+.bar .file {
+  display: block; max-width: 100%; text-align: left;
+  font-size: 14px; color: var(--ink-soft);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-
 .file small { color: var(--ink-faint); margin-left: 6px; font-size: 13px; }
+.file::after {
+  content: ""; display: inline-block; width: 5px; height: 5px; margin: 0 2px 3px 8px;
+  border: solid var(--ink-faint); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+}
+
+.file-menu {
+  position: absolute; top: 40px; left: 0; z-index: 20; width: max-content;
+  display: none; padding: 6px;
+  background: var(--paper-raised); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(60, 40, 20, .08);
+}
+.file-menu.open { display: grid; }
+.bar .file-menu button {
+  display: flex; justify-content: space-between; align-items: center; gap: 24px;
+  height: 34px; font-size: 14px; text-align: left; color: var(--ink); white-space: nowrap;
+}
+.file-menu button:focus-visible { outline: none; background: var(--hover); }
 
 .tools { display: grid; justify-items: center; gap: 2px; }
 .row { display: flex; align-items: center; gap: 2px; }
@@ -203,7 +222,19 @@ kbd {
 .dialog-buttons button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @media (max-width: 900px) {
-  .file { display: none; }
-  .bar { grid-template-columns: auto 1fr; }
+  /* finestra stretta: del nome resta solo la freccia del menu */
+  .bar { grid-template-columns: auto auto 1fr; }
+  .file-wrap { min-width: 36px; }
+  .bar .file { font-size: 0; }
+  .file::after { margin: 0 0 3px; }
+}
+@media (max-width: 700px) {
+  .bar { padding-left: 12px; padding-right: 12px; }
+  .sep { margin: 0 3px; }
+  .spell-btn kbd { display: none; }
+}
+@media (max-width: 600px) {
+  .bar button { padding: 0 6px; }
+  .sep { display: none; }
   .guide-card { padding: 28px 22px 30px; }
 }
