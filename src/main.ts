@@ -6,10 +6,11 @@ import './styles/app.css';
 import type { EditorView } from 'prosemirror-view';
 import type { Command } from 'prosemirror-state';
 import {
-  createEditor, currentBlock, insertChar, markActive, setBlock, toggleEm, toggleStrong, wrapGuillemets,
+  createEditor, currentBlock, insertChar, markActive, replaceDoc, setBlock, toggleEm, toggleStrong, wrapGuillemets,
   type Block,
 } from './editor';
 import { schema } from './editor/schema';
+import { gestioneFile } from './file';
 import { DEFAULTS, FONTS, fontByName, loadSettings, saveSettings, type Font, type Settings } from './settings';
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
@@ -24,7 +25,20 @@ const view = createEditor($('#editor'), {
   onApply: flash,
   onChange(v) {
     refreshToolbar(v);
-    if (v.state.doc !== lastDoc) { lastDoc = v.state.doc; updateCountSoon(); }
+    if (v.state.doc !== lastDoc) { lastDoc = v.state.doc; updateCountSoon(); file.aggiorna(); }
+  },
+});
+
+/* ---------- file ---------- */
+const file = gestioneFile({
+  view,
+  flash,
+  sostituisci(doc) {
+    replaceDoc(view, doc);
+    lastDoc = view.state.doc;
+    refreshToolbar(view);
+    updateCount();
+    scrollTo(0, 0);
   },
 });
 
@@ -158,6 +172,16 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (ctrl && e.key === ',') { e.preventDefault(); toggleSettings(); return; }
+  const key = e.key.toLowerCase();
+  if (ctrl && ['n', 'o', 's'].includes(key)) {
+    e.preventDefault();
+    if (e.repeat) return;
+    if (key === 'n') file.nuovo();
+    else if (key === 'o') file.apri();
+    else if (e.shiftKey) file.salvaConNome();
+    else file.salva();
+    return;
+  }
   if (ctrl && e.shiftKey && e.code === 'KeyF') { e.preventDefault(); nextFont(); return; }
   if (e.key === 'F7') {
     e.preventDefault();
@@ -239,4 +263,5 @@ addEventListener('resize', updateCplSoon);
 applySettings();
 updateCount();
 refreshToolbar(view);
+file.avvia();
 view.focus();

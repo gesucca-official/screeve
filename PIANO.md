@@ -38,19 +38,29 @@ Alternative scartate: Electron (troppo pesante), Wails/Go (valido, ma l'ecosiste
 | Grassetto | mark `strong` | `<w:b/>` | Grassetto |
 | Corsivo | mark `em` | `<w:i/>` | Corsivo |
 
-Uso gli stili **integrati** di Word (`Heading1/2`) e non stili personalizzati: così il riquadro di spostamento di Word e la struttura di Google Documenti mostrano i capitoli, e l'indice automatico funziona. *(Alternativa: `Title`/`Subtitle`, ma Word li pensa come uno solo per documento.)*
+Uso gli stili **integrati** di Word (`Heading1/2`) e non stili personalizzati: così il riquadro di spostamento di Word e la struttura di Google Documenti mostrano i capitoli, e l'indice automatico funziona. ✅ Deciso.
 
 ### Scrittura
-File minimo e valido: `[Content_Types].xml`, `_rels/.rels`, `word/document.xml`, `word/styles.xml`, `word/settings.xml`, `docProps/core.xml` e `app.xml`. Lingua `it-IT` impostata negli stili, così anche il correttore di Word lavora in italiano. Salvataggio **atomico** (scrivo su file temporaneo, poi rinomino) per non perdere mai un documento.
+File minimo e valido: `[Content_Types].xml`, `_rels/.rels`, `word/document.xml` con le sue relazioni (`word/_rels/document.xml.rels`), `word/styles.xml`, `word/settings.xml`, `docProps/core.xml` e `app.xml`. Lingua `it-IT` impostata negli stili, così anche il correttore di Word lavora in italiano. Pagina A4 con i margini predefiniti di Word in italiano, `compatibilityMode` 15 (niente "Modalità compatibilità"). Codice in `src-tauri/src/docx/`.
+
+Decisioni ✅:
+- **Font nel file: Georgia**, presente in Word (Windows e Mac) e in Google Documenti, a prescindere dal font scelto a schermo. Il font dell'editor è solo una preferenza di visualizzazione.
+- **Paragrafi neutri:** né spaziatura prima/dopo né rientro della prima riga, interlinea singola, testo a 12 pt. L'impaginazione (es. per la stampa) si fa poi in Word con le impostazioni di paragrafo; la spaziatura che si vede nell'editor è solo a schermo.
+- **Titolo** (`heading 1`): 22 pt grassetto, 24 pt prima e 6 dopo. **Sottotitolo** (`heading 2`): 14 pt corsivo, 6 pt prima e 18 dopo. Entrambi restano attaccati al paragrafo che segue.
+- Niente `.odt` per ora. Salvataggio **atomico** (scrivo su file temporaneo, poi rinomino) per non perdere mai un documento.
 
 ### Lettura (onestà sui limiti)
 "100% compatibile" vale in modo pieno per **i file creati da Screeve**. Un docx arbitrario può contenere tabelle, immagini, note, commenti, revisioni: Screeve non li mostra. Proposta:
-- importo testo, paragrafi, titoli (riconosco anche `Title`/`Subtitle`/`Heading3+` e i nomi localizzati tipo "Titolo 1"), grassetto e corsivo;
-- se il file contiene altro, avviso chiaro all'apertura: *"Questo documento contiene elementi che Screeve non gestisce (2 immagini, 1 tabella). Salvando andrebbero persi."* e propongo **Salva una copia** come azione predefinita, per non distruggere mai l'originale.
+- importo testo, paragrafi, titoli, grassetto e corsivo;
+- lo stile si risolve tramite `styles.xml`, perché gli id possono essere localizzati (`Titolo1` in Word italiano): conta il **nome** dello stile (`heading 1`, `Title`, anche "Titolo 1"), poi `outlineLvl`, poi lo stile di base. `Title` e `Heading1` → Titolo; `Subtitle` e `Heading2` o inferiori → Sottotitolo;
+- grassetto e corsivo valgono anche quando arrivano dallo stile del carattere (es. "Enfasi grassetto") o da uno stile di paragrafo (es. "Citazione" in corsivo), e si spengono con `w:val="0"`/`"false"`; stili di paragrafo e di carattere si annullano a vicenda come in Word. Nei titoli lo stile del paragrafo non conta: il grassetto di un titolo è il suo aspetto, non una marcatura;
+- tabulazioni: quelle a inizio paragrafo (rientri fatti a mano) si tolgono, le altre restano. A capo manuale: nel testo divide il paragrafo, in un titolo diventa uno spazio. Campi (numeri di pagina, indici…): resta il risultato visibile. Revisioni: si legge il testo come se fossero accettate. Il testo delle tabelle diventa paragrafi;
+- se il file contiene altro (tabelle, immagini, caselle di testo, formule, note, commenti, revisioni, elenchi, intestazioni e piè di pagina, interruzioni di pagina, campi, collegamenti, sottolineature, simboli) lo conto e all'apertura mostro un avviso chiaro: *"Questo documento contiene elementi che Screeve non gestisce. 2 immagini e 1 tabella. Salvando andrebbero persi…"* con **Salva una copia** come scelta predefinita, per non distruggere mai l'originale. Anche chiudendo l'avviso con Esc il documento diventa una copia non ancora salvata.
 
 ### Verifica della compatibilità
-- Test automatici di round-trip (docx → modello → docx) su un corpus di file prodotti da Word, Google Documenti e LibreOffice.
-- Validazione XML contro gli schemi OOXML.
+- `cargo test` (in `src-tauri`): round-trip modello → docx → modello, XML ben formato, salvataggio atomico, e lettura di XML costruiti come quelli di Word in italiano, Google Documenti e LibreOffice, con il conteggio degli elementi non supportati.
+- `cargo test -- --ignored genera_esempio` rigenera [`docs/esempio.docx`](docs/esempio.docx) (titoli, sottotitoli, grassetto, corsivo, caporali, accenti) per la prova manuale.
+- Più avanti: un corpus di file veri prodotti da Word, Google Documenti e LibreOffice, e validazione XML contro gli schemi OOXML.
 - Checklist manuale a ogni release: apertura in Word desktop, Word online, Google Documenti, LibreOffice.
 
 ## Correttore ortografico
@@ -64,7 +74,8 @@ File minimo e valido: `[Content_Types].xml`, `_rels/.rels`, `word/document.xml`,
 
 ## Interfaccia
 
-- **Barra in alto:** Titolo · Sottotitolo · Testo | G · C | Sinonimi. A sinistra il nome del file, a destra il contatore dei refusi e due icone: **Impostazioni** e **Guida**.
+- **Barra in alto:** Titolo · Sottotitolo · Testo | G · C | Sinonimi. A sinistra il nome del file con lo stato (*salvato*, *modificato*, *non salvato*, ripetuto nel titolo della finestra con un pallino •), a destra il contatore dei refusi e due icone: **Impostazioni** e **Guida**.
+- **File:** Nuovo, Apri, Salva, Salva con nome solo da tastiera (niente menu). Prima di Nuovo, Apri o della chiusura della finestra con modifiche non salvate: *Salva · Non salvare · Annulla*. Si apre anche trascinando un .docx sulla finestra o sull'eseguibile, con "Apri con" o col doppio clic su un file associato (il percorso arriva come argomento da riga di comando). Domande e avvisi sono finestre dell'app, nello stile della pagina.
 - **Barra in basso:** parole, caratteri, tempo di lettura e lo zoom `− 100% +`.
 - **Caratteri, colonna verticale sul lato destro, nella parte bassa:** È « » ‹ › «…». Quando il pannello Impostazioni è aperto restano coperti.
 - Mentre si scrive, barre e caratteri si ritirano quasi del tutto.
@@ -116,6 +127,7 @@ Icona "i" in alto a destra (o **F1**): finestra sovrapposta, scorrevole, chiusa 
 | Guida | F1 |
 | Chiudi pannelli e suggerimenti | Esc |
 | Salva / Apri / Nuovo | Ctrl+S / Ctrl+O / Ctrl+N |
+| Salva con nome | Ctrl+Maiusc+S |
 
 Correzioni automatiche mentre scrivi (disattivabili): `<<` → «, `>>` → », `E'` → È.
 
@@ -130,7 +142,7 @@ Correzioni automatiche mentre scrivi (disattivabili): `<<` → «, `>>` → », 
 
 1. ✅ **Scheletro** — progetto Tauri 2 + Vite + TS, finestra, tema, font incluso, build portable funzionante.
 2. ✅ **Editor** — schema ProseMirror ristretto, barra con titolo/sottotitolo/testo e G/C, caratteri speciali in colonna sul lato destro, avvolgi in « », correzioni automatiche, conteggio parole, ingrandimento del testo, UI che si ritira, pannello Impostazioni, Guida.
-3. **DOCX** — Nuovo/Apri/Salva/Salva con nome, scrittura e poi lettura, avviso sui contenuti non supportati, test di round-trip e prova manuale in Word e Google Documenti.
+3. ✅ **DOCX** — Nuovo/Apri/Salva/Salva con nome, scrittura e poi lettura, avviso sui contenuti non supportati, test di round-trip. Resta la prova manuale di `docs/esempio.docx` in Word e Google Documenti.
 4. **Correttore** — spellbook + it_IT, decorazioni, popover, F7/Alt+Invio, dizionario personale, regole italiane.
 5. **Sinonimi** — thesaurus MyThes, popover, lemma dalla forma flessa (MVP), poi sinonimi già flessi.
 6. **Rifinitura** — salvataggio automatico e recupero dopo crash, impostazioni portable, file recenti, icona, firma dell'eseguibile.
@@ -139,7 +151,4 @@ Idee per dopo (fuori dal minimo): modalità macchina da scrivere (riga corrente 
 
 ## Decisioni aperte
 
-1. **Font nel docx**: scrivo nel file il font dell'editor (chi lo apre senza averlo installato vedrà un sostituto) o un font standard (es. Garamond / Times New Roman) e uso il nostro solo a schermo?
-2. **Titolo/Sottotitolo** come `Heading1/2` (proposto) o `Title/Subtitle`?
-3. **Paragrafi**: spaziatura tra paragrafi (come ora) o rientro della prima riga, all'uso dei libri italiani?
-4. Supporto anche a **`.odt`** o ad altri formati più avanti?
+1. **Licenza** del progetto, da scegliere prima della fase 4: il dizionario it_IT di LibreOffice che includeremo è GPL.

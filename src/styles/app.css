@@ -26,6 +26,8 @@ body.typing .bar:hover, body.typing .status:hover, body.typing .chars:hover { op
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+.file small { color: var(--ink-faint); margin-left: 6px; font-size: 13px; }
+
 .tools { display: grid; justify-items: center; gap: 2px; }
 .row { display: flex; align-items: center; gap: 2px; }
 .sep { width: 1px; height: 18px; background: var(--line); margin: 0 8px; }
@@ -173,6 +175,32 @@ kbd {
 .guide-card tr.group td { color: var(--ink-faint); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; padding-top: 16px; }
 .guide-card kbd { font-size: 13px; color: var(--ink-soft); background: var(--paper); padding: 1px 6px; }
 .guide-card .g { font-family: var(--font), serif; font-size: 17px; color: var(--ink); }
+
+/* ---------- domande (salvare? elementi non gestiti, errori) ---------- */
+.dialog {
+  position: fixed; inset: 0; z-index: 40; display: none; place-items: center;
+  background: rgba(244, 237, 222, .72); backdrop-filter: blur(3px);
+  padding: 16px;
+}
+.dialog.open { display: grid; }
+.dialog-card {
+  max-width: 460px; width: 100%;
+  background: var(--paper-raised); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(60, 40, 20, .14);
+  padding: 24px 26px 20px; color: var(--ink);
+}
+.dialog-card h3 { font: 600 18px/1.35 var(--font), serif; margin: 0 0 8px; }
+.dialog-card p { font-size: 14px; line-height: 1.55; color: var(--ink-soft); margin: 0 0 4px; }
+.dialog-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.dialog-buttons button {
+  font: inherit; font-size: 14px; color: var(--ink-soft);
+  background: none; border: 1px solid var(--line); border-radius: 8px;
+  height: 34px; padding: 0 14px; cursor: pointer;
+}
+.dialog-buttons button:hover { background: var(--hover); color: var(--ink); }
+.dialog-buttons button.primary { background: var(--accent); border-color: var(--accent); color: var(--paper-raised); }
+.dialog-buttons button.primary:hover { background: #7A4D33; }
+.dialog-buttons button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @media (max-width: 900px) {
   .file { display: none; }

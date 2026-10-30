@@ -2,6 +2,7 @@ import { baseKeymap, chainCommands } from 'prosemirror-commands';
 import { history, redo, undo } from 'prosemirror-history';
 import { undoInputRule } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
+import type { Node } from 'prosemirror-model';
 import { EditorState, Plugin } from 'prosemirror-state';
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { autocorrect, type AutocorrectOptions } from './autocorrect';
@@ -62,4 +63,10 @@ export function createEditor(mount: HTMLElement, options: EditorOptions): Editor
     },
   });
   return view;
+}
+
+// Sostituisce il documento (Nuovo, Apri) col cursore all'inizio. Lo stato è nuovo,
+// quindi anche la cronologia di Annulla riparte da qui. Non passa da onChange.
+export function replaceDoc(view: EditorView, doc: Node): void {
+  view.updateState(EditorState.create({ doc, plugins: view.state.plugins }));
 }
