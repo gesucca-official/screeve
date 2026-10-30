@@ -24,7 +24,7 @@ Mockup interattivo: [mockup/index.html](mockup/index.html).
 Alternative scartate: Electron (troppo pesante), Wails/Go (valido, ma l'ecosistema Rust ha già spellbook e Tauri è più maturo), Neutralino (API native troppo limitate).
 
 ### Portabilità
-- Build `tauri build` → un singolo `screeve.exe`, nessuna installazione.
+- Build `tauri build` → `screeve.exe` più la cartella `dizionari/` (dizionario e thesaurus, che per licenza restano file separati, vedi Licenza). Si distribuisce come zip, nessuna installazione.
 - Impostazioni e dizionario personale in `screeve.json` / `personale.dic` **accanto all'eseguibile** se la cartella è scrivibile (chiavetta USB), altrimenti in `%APPDATA%\Screeve`.
 - Requisito: WebView2 (preinstallato su Windows 11 e sui Windows 10 aggiornati). Più avanti: build macOS/Linux con lo stesso codice.
 
@@ -98,7 +98,7 @@ Icona "i" in alto a destra (o **F1**): finestra sovrapposta, scorrevole, chiusa 
 
 - Si seleziona una parola (o basta avere il cursore sopra) e si preme **Maiusc+F7** (come in Word) o il pulsante **Sinonimi**.
 - Popover con i sinonimi raggruppati per significato; si sceglie con frecce + Invio o col clic. La sostituzione conserva maiuscola iniziale, corsivo e grassetto ed è annullabile con Ctrl+Z.
-- Fonte: **thesaurus italiano di LibreOffice** (formato MyThes `th_it_IT_v2.idx/.dat`), letto in Rust con ricerca nell'indice, senza caricarlo tutto in memoria. Licenza da verificare prima del rilascio.
+- Fonte: **thesaurus italiano di LibreOffice** (formato MyThes `th_it_IT_v2.idx/.dat`), letto in Rust con ricerca nell'indice, senza caricarlo tutto in memoria. GPL 3 come il dizionario: anche lui resta un file separato in `dizionari/`.
 - **Il punto difficile è la flessione.** Il thesaurus contiene forme base (*antico*, *brillare*), ma nel testo si scrive *antiche*, *brilla*. Piano a due passi:
   1. **MVP:** dalla forma flessa si risale al lemma con le regole del dizionario Hunspell (le stesse del correttore) e si mostrano i sinonimi del lemma, dicendo chiaramente "da «antico»". Chi scrive adatta la desinenza.
   2. **Poi:** i sinonimi vengono proposti già nella forma giusta (*vecchie*, *risplende*): regole per sostantivi e aggettivi regolari, e per i verbi la stessa persona e lo stesso tempo, usando le forme generate dal dizionario. Il mockup mostra già questo comportamento.
@@ -149,6 +149,10 @@ Correzioni automatiche mentre scrivi (disattivabili): `<<` → «, `>>` → », 
 
 Idee per dopo (fuori dal minimo): modalità macchina da scrivere (riga corrente sempre al centro), focus sul paragrafo corrente, tema notte, lineetta di dialogo `—` con `--`, obiettivo di parole giornaliero, esportazione PDF/EPUB.
 
-## Decisioni aperte
+## Licenza ✅
 
-1. **Licenza** del progetto, da scegliere prima della fase 4: il dizionario it_IT di LibreOffice che includeremo è GPL.
+- Il codice di Screeve è **tutti i diritti riservati** ([LICENSE](LICENSE)): il repository è pubblico ma non concede permessi. In `package.json` è `UNLICENSED`.
+- Dizionario e thesaurus italiani di LibreOffice sono **GPL 3**. Per non estendere la GPL a Screeve restano **file di dati separati e non modificati** in `dizionari/` accanto all'eseguibile (non incorporati con `include_bytes!`), con il testo della licenza e il link ai sorgenti. Le regole italiane extra (qual'è, po'…) sono codice nostro, non modifiche al dizionario.
+- spellbook è MPL-2.0: si usa senza modificarne i file. Font OFL, librerie MIT/Apache.
+- Elenco completo in [TERZE-PARTI.md](TERZE-PARTI.md); i testi delle licenze entrano nello zip in fase 6.
+- Non è una consulenza legale: prima di vendere o distribuire su larga scala conviene una verifica.

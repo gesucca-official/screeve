@@ -16,6 +16,8 @@ Il mockup interattivo è in [`mockup/index.html`](mockup/index.html) (si apre di
 
 Stack: Tauri 2, TypeScript, ProseMirror, Rust.
 
+Copyright © 2026 Simone Cipriani, tutti i diritti riservati ([LICENSE](LICENSE)). Componenti di terze parti e relative licenze: [TERZE-PARTI.md](TERZE-PARTI.md).
+
 ## Sviluppo
 
 Requisiti (Windows): [Node.js](https://nodejs.org) 20+, [Rust](https://rustup.rs) e i Microsoft C++ Build Tools. WebView2 è già presente in Windows 10 e 11.

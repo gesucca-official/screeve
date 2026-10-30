@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Editor per la scrittura creativa in italiano",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "dev": "vite",
