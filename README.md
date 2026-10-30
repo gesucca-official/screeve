@@ -12,4 +12,16 @@ Editor di testo per la scrittura creativa in italiano: senza distrazioni, piacev
 
 In progettazione. Il mockup interattivo è in [`mockup/index.html`](mockup/index.html) (si apre direttamente nel browser), il piano di implementazione in [`PIANO.md`](PIANO.md).
 
-Stack previsto: Tauri 2, TypeScript, ProseMirror, Rust.
+Stack: Tauri 2, TypeScript, ProseMirror, Rust.
+
+## Sviluppo
+
+Requisiti (Windows): [Node.js](https://nodejs.org) 20+, [Rust](https://rustup.rs) e i Microsoft C++ Build Tools. WebView2 è già presente in Windows 10 e 11.
+
+```bash
+npm install
+npm run app:dev      # app in modalità sviluppo, con ricarica automatica
+npm run app:build    # eseguibile portable in src-tauri/target/release/screeve.exe
+```
+
+`npm run dev` avvia solo l'interfaccia nel browser, su http://localhost:1420.

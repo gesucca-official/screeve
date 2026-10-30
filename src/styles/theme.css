@@ -1,0 +1,22 @@
+/* Colori, font e misure di Screeve. Unica fonte per tutta l'interfaccia. */
+:root {
+  --paper: #F4EDDE;
+  --paper-raised: #FAF5EA;
+  --ink: #3A2A1F;
+  --ink-soft: #7A6452;
+  --ink-faint: #B09C86;
+  --line: rgba(90, 60, 40, .14);
+  --hover: rgba(90, 60, 40, .07);
+  --on: rgba(90, 60, 40, .12);
+  --accent: #8C5A3C;
+  --typo: #B4533A;
+  --ok: #6E7F50;
+  --select: rgba(176, 128, 72, .28);
+
+  --font: "Literata Variable";
+  --size: 19px;
+  --zoom: 1;
+  --measure: 33em;   /* ~65 caratteri per riga */
+  --leading: 1.65;
+  --ui: "Segoe UI", system-ui, -apple-system, sans-serif;
+}

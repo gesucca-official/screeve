@@ -1,0 +1,23 @@
+{
+  "name": "screeve",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Editor per la scrittura creativa in italiano",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "tauri": "tauri",
+    "app:dev": "tauri dev",
+    "app:build": "tauri build --no-bundle"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  },
+  "dependencies": {
+    "@fontsource-variable/literata": "^5.3.0",
+    "@tauri-apps/api": "^2.12.4"
+  }
+}
