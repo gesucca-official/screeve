@@ -5,13 +5,15 @@ mod caricato;
 mod correttore;
 mod dati;
 mod docx;
+mod recupero;
 mod sinonimi;
 
 use caricato::Caricato;
 use correttore::{Correttore, Refuso};
+use recupero::{Copia, Orfana, Sessione};
 use sinonimi::{Sinonimi, Voce};
 use std::path::PathBuf;
-use tauri::{Emitter, Manager, State};
+use tauri::{Emitter, Manager, RunEvent, State};
 
 #[tauri::command]
 async fn apri_docx(percorso: String) -> Result<docx::Documento, String> {
@@ -54,6 +56,42 @@ async fn sinonimi(parola: String, stato: State<'_, Caricato<Sinonimi>>) -> Resul
     stato.con(|s| s.cerca(&parola))
 }
 
+/// La copia di sicurezza del documento con modifiche non salvate (vedi recupero.rs).
+#[tauri::command]
+async fn salva_copia(copia: Copia, sessione: State<'_, Option<Sessione>>) -> Result<(), String> {
+    sessione.as_ref().map_or(Ok(()), |s| s.salva(&copia))
+}
+
+#[tauri::command]
+fn cancella_copia(sessione: State<'_, Option<Sessione>>) {
+    if let Some(s) = sessione.as_ref() {
+        s.cancella();
+    }
+}
+
+/// Le copie lasciate da un crash, la più recente per prima.
+#[tauri::command]
+fn copie_orfane(sessione: State<'_, Option<Sessione>>) -> Vec<Orfana> {
+    sessione.as_ref().map(Sessione::orfane).unwrap_or_default()
+}
+
+#[tauri::command]
+fn dimentica_copia(id: String, sessione: State<'_, Option<Sessione>>) {
+    if let Some(s) = sessione.as_ref() {
+        s.dimentica(&id);
+    }
+}
+
+#[tauri::command]
+fn leggi_impostazioni() -> Option<String> {
+    dati::leggi_impostazioni()
+}
+
+#[tauri::command]
+async fn salva_impostazioni(testo: String) -> Result<(), String> {
+    dati::salva_impostazioni(&testo)
+}
+
 /// Dizionario e thesaurus, in un thread: l'editor è subito utilizzabile. Il
 /// correttore arriva per primo, il thesaurus (più lento da indicizzare) dopo.
 fn carica_dizionari(app: tauri::AppHandle) {
@@ -78,6 +116,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .manage(Caricato::<Correttore>::default())
         .manage(Caricato::<Sinonimi>::default())
+        .manage(dati::cartella_dati().map(|d| Sessione::nuova(d.join("recupero"))))
         .setup(|app| {
             let app = app.handle().clone();
             std::thread::spawn(move || carica_dizionari(app));
@@ -90,8 +129,22 @@ fn main() {
             controlla,
             suggerisci,
             aggiungi_parola,
-            sinonimi
+            sinonimi,
+            salva_copia,
+            cancella_copia,
+            copie_orfane,
+            dimentica_copia,
+            leggi_impostazioni,
+            salva_impostazioni
         ])
-        .run(tauri::generate_context!())
-        .expect("errore all'avvio di Screeve");
+        .build(tauri::generate_context!())
+        .expect("errore all'avvio di Screeve")
+        .run(|app, evento| {
+            // chiusura normale: la copia di sicurezza non serve più
+            if let RunEvent::Exit = evento {
+                if let Some(s) = app.state::<Option<Sessione>>().as_ref() {
+                    s.chiudi();
+                }
+            }
+        });
 }

@@ -40,6 +40,19 @@ pub fn cartella_dati() -> Option<PathBuf> {
         .clone()
 }
 
+/// Le impostazioni (screeve.json), come le ha scritte l'interfaccia.
+pub fn leggi_impostazioni() -> Option<String> {
+    fs::read_to_string(cartella_dati()?.join("screeve.json")).ok()
+}
+
+pub fn salva_impostazioni(testo: &str) -> Result<(), String> {
+    let cartella = cartella_dati().ok_or("Non trovo una cartella in cui salvare le impostazioni")?;
+    let temporaneo = cartella.join("screeve.json.tmp");
+    fs::write(&temporaneo, testo)
+        .and_then(|_| fs::rename(&temporaneo, cartella.join("screeve.json")))
+        .map_err(|e| format!("Non riesco a salvare le impostazioni: {e}"))
+}
+
 fn scrivibile(cartella: &PathBuf) -> bool {
     let prova = cartella.join(".screeve-prova");
     let ok = OpenOptions::new().create(true).truncate(true).write(true).open(&prova).is_ok();

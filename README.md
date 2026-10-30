@@ -10,7 +10,7 @@ Editor di testo per la scrittura creativa in italiano: senza distrazioni, piacev
 
 ## Stato
 
-In sviluppo. Già pronti l'editor (fase 2: titolo, sottotitolo, grassetto e corsivo, caratteri italiani e correzioni automatiche, zoom, impostazioni con cinque font inclusi e guida, F1), i file `.docx` (fase 3: Nuovo, Apri, Salva e Salva con nome, dal menu sul nome del file o da tastiera, apertura dei documenti di Word, Google Documenti e LibreOffice con avviso su ciò che Screeve non gestisce) il correttore ortografico (fase 4: refusi sottolineati, F7, Alt+Invio, dizionario personale) e i sinonimi (fase 5: Maiusc+F7, anche dalle forme flesse). Manca la rifinitura (fase 6).
+In sviluppo. Già pronti l'editor (fase 2: titolo, sottotitolo, grassetto e corsivo, caratteri italiani e correzioni automatiche, zoom, impostazioni con cinque font inclusi e guida, F1), i file `.docx` (fase 3: Nuovo, Apri, Salva e Salva con nome, dal menu sul nome del file o da tastiera, apertura dei documenti di Word, Google Documenti e LibreOffice con avviso su ciò che Screeve non gestisce) il correttore ortografico (fase 4: refusi sottolineati, F7, Alt+Invio, dizionario personale) i sinonimi (fase 5: Maiusc+F7, anche dalle forme flesse) e buona parte della rifinitura (fase 6: copia di sicurezza e recupero dopo un crash, impostazioni portable in `screeve.json`, zip di distribuzione). Mancano file recenti e firma dell'eseguibile.
 
 Il mockup interattivo è in [`mockup/index.html`](mockup/index.html) (si apre direttamente nel browser), il piano di implementazione in [`PIANO.md`](PIANO.md).
 
@@ -26,6 +26,7 @@ Requisiti (Windows): [Node.js](https://nodejs.org) 20+, [Rust](https://rustup.rs
 npm install
 npm run app:dev      # app in modalità sviluppo, con ricarica automatica
 npm run app:build    # eseguibile portable in src-tauri/target/release/screeve.exe, con accanto la cartella dizionari/
+npm run app:pacchetto  # build e poi lo zip da distribuire, con le licenze, in src-tauri/target/pacchetto/
 ```
 
 `npm run dev` avvia solo l'interfaccia nel browser, su http://localhost:1420 (lì aprire e salvare non funzionano: servono le API di Tauri).

@@ -10,8 +10,13 @@ import { aDoc, daDoc, docVuoto, type Blocco } from './documento';
 // Nuovo, Apri, Salva e Salva con nome; nome del file e stato salvato/modificato
 // nella barra in alto e nel titolo della finestra. La lettura e la scrittura del
 // docx sono in Rust (src-tauri/src/docx).
+// Con modifiche non salvate, una copia di sicurezza va in Rust (recupero.rs) poco
+// dopo l'ultima modifica; dopo un crash, all'avvio si propone di riaprirla.
 
 interface Apertura { blocchi: Blocco[]; nonSupportati: { elemento: string; quanti: number }[] }
+interface Copia { percorso: string | null; nome: string; daSalvare: boolean; blocchi: Blocco[]; quando: number }
+
+const ATTESA_COPIA = 2000;  // ms dopo l'ultima modifica
 
 const FILTRO = { name: 'Documento Word', extensions: ['docx'] };
 
@@ -49,11 +54,17 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
   let modificato = false;
   let occupato = false;
   let mostrato = '';
+  let copiaScritta = false;
+  let timerCopia: number | undefined;
 
   const titolo = document.querySelector('#file-name') as HTMLElement;
 
   function aggiorna(): void {
     modificato = daSalvare || !view.state.doc.eq(salvato);
+    if (app) {
+      clearTimeout(timerCopia);
+      timerCopia = setTimeout(copia, modificato ? ATTESA_COPIA : 0);
+    }
     const stato = percorso && !daSalvare ? (modificato ? 'modificato' : 'salvato') : (modificato ? 'non salvato' : '');
     const chiave = nome + '|' + stato;
     if (chiave === mostrato) return;
@@ -65,6 +76,40 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
     const finestra = `${modificato ? '• ' : ''}${nome} — Screeve`;
     if (app) getCurrentWindow().setTitle(finestra).catch(() => {});
     else document.title = finestra;
+  }
+
+  /* ---------- copia di sicurezza ---------- */
+  function copia(): void {
+    if (modificato) {
+      const c: Copia = { percorso, nome, daSalvare, blocchi: daDoc(view.state.doc), quando: Date.now() };
+      invoke('salva_copia', { copia: c }).then(() => { copiaScritta = true; }, e => flash(String(e)));
+    } else if (copiaScritta) {
+      copiaScritta = false;
+      invoke('cancella_copia').catch(() => {});
+    }
+  }
+
+  // Dopo un crash: la copia più recente. Esc la lascia lì per la prossima volta.
+  async function recupera(): Promise<void> {
+    const [orfana] = await invoke<{ id: string; copia: Copia }[]>('copie_orfane');
+    if (!orfana) return;
+    const c = orfana.copia;
+    const quando = new Date(c.quando).toLocaleString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    const scelta = await chiedi(
+      `Screeve si è chiuso senza salvare «${c.nome}»`,
+      `C'è una copia delle modifiche di ${quando}. Il file originale non è stato toccato.`,
+      [{ etichetta: 'Riapri le modifiche', valore: 'riapri' }, { etichetta: 'Scartale', valore: 'scarta' }],
+      'dopo',
+    );
+    if (scelta === 'dopo') return;
+    if (scelta === 'riapri') {
+      carica(aDoc(c.blocchi), c.percorso);
+      nome = c.nome;
+      daSalvare = c.daSalvare;
+      salvato = docVuoto();  // tutto il testo recuperato è da salvare
+      aggiorna();
+    }
+    await invoke('dimentica_copia', { id: orfana.id });
   }
 
   function carica(doc: Node, da: string | null): void {
@@ -210,8 +255,12 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
       if (docx) apri(docx);
       else if (e.payload.paths.length) flash('Screeve apre solo file .docx');
     });
-    // "Apri con", doppio clic su un .docx, trascinamento sull'eseguibile
-    invoke<string | null>('file_iniziale').then(p => { if (p) apri(p); });
+    // prima l'eventuale recupero, poi "Apri con", doppio clic su un .docx o
+    // trascinamento sull'eseguibile (che chiede se salvare ciò che si è recuperato)
+    recupera()
+      .catch(e => flash(String(e)))
+      .then(() => invoke<string | null>('file_iniziale'))
+      .then(p => { if (p) apri(p); });
   }
 
   const apri = una(apriQui, undefined);

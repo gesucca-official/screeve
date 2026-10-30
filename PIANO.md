@@ -88,7 +88,7 @@ Pannello laterale che si apre dall'icona con i cursori (o **Ctrl+,**). Il testo 
 - **Correzioni automatiche** attivabili e disattivabili.
 - **Ripristina predefiniti.**
 
-Le impostazioni si salvano in `screeve.json` (vedi Portabilità); fino alla fase 6 restano nel `localStorage` della WebView. I 5 font, ognuno in 4 stili (latin e latin-ext, woff2), aggiungono circa 1 MB all'eseguibile.
+Le impostazioni si salvano in `screeve.json` (vedi Portabilità), con una copia nel `localStorage` della WebView per averle subito all'avvio. I 5 font, ognuno in 4 stili (latin e latin-ext, woff2), aggiungono circa 1 MB all'eseguibile.
 
 ## Guida
 
@@ -145,7 +145,7 @@ Correzioni automatiche mentre scrivi (disattivabili): `<<` → «, `>>` → », 
 3. ✅ **DOCX** — Nuovo/Apri/Salva/Salva con nome, scrittura e poi lettura, avviso sui contenuti non supportati, test di round-trip. Provato a mano in Word e Google Documenti. Menu File cliccabile sul nome del file.
 4. ✅ **Correttore** — spellbook + it_IT, decorazioni, popover, F7/Alt+Invio/Alt+2-5, Ignora, dizionario personale, regole italiane. Codice in `src-tauri/src/correttore/` e `src/correttore.ts`, test con `cargo test correttore`. Il dizionario personale sta già accanto all'eseguibile o in `%APPDATA%\Screeve` (`src-tauri/src/dati.rs`).
 5. ✅ **Sinonimi (MVP)** — thesaurus MyThes, popover con frecce/Invio/Esc, lemma dalla forma flessa con le regole SFX del dizionario al contrario più i singolari (case → casa, antiche → antico, brillavano → brillare, dirtelo → dire). Codice in `src-tauri/src/sinonimi/` e `src/sinonimi.ts`. Limiti: i passati remoti irregolari (corse → correre) non si trovano. Resta per dopo: sinonimi già flessi.
-6. **Rifinitura** — salvataggio automatico e recupero dopo crash, impostazioni portable, file recenti, icona, firma dell'eseguibile.
+6. **Rifinitura** — ✅ copia di sicurezza e recupero dopo un crash (`src-tauri/src/recupero.rs`: copia in `recupero/` nella cartella dei dati 2 s dopo l'ultima modifica, un lucchetto per sessione così due finestre non si confondono, il .docx non si tocca mai); ✅ impostazioni in `screeve.json` (il localStorage resta come copia per l'avvio); ✅ icona (le caporali « », da `app-icon.svg`); ✅ zip di distribuzione con le licenze (`npm run app:pacchetto`). Restano: file recenti, firma dell'eseguibile.
 
 Idee per dopo (fuori dal minimo): modalità macchina da scrivere (riga corrente sempre al centro), focus sul paragrafo corrente, tema notte, lineetta di dialogo `—` con `--`, obiettivo di parole giornaliero, esportazione PDF/EPUB.
 

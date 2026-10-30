@@ -13,7 +13,7 @@ import { schema } from './editor/schema';
 import { gestioneCorrettore } from './correttore';
 import { gestioneFile } from './file';
 import { gestioneSinonimi } from './sinonimi';
-import { DEFAULTS, FONTS, fontByName, loadSettings, saveSettings, type Font, type Settings } from './settings';
+import { DEFAULTS, FONTS, fontByName, loadSettings, loadSettingsFile, saveSettings, type Font, type Settings } from './settings';
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
 const root = document.documentElement.style;
@@ -310,6 +310,11 @@ function updateCplSoon(): void {
 addEventListener('resize', updateCplSoon);
 
 applySettings();
+// screeve.json vale più della copia nel localStorage; se non c'è ancora, lo si crea
+loadSettingsFile().then(fromFile => {
+  if (!fromFile) saveSettings(settings);
+  else if (JSON.stringify(fromFile) !== JSON.stringify(settings)) setSetting(fromFile);
+});
 updateCount();
 refreshToolbar(view);
 file.avvia();

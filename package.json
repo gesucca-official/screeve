@@ -10,7 +10,8 @@
     "build": "tsc && vite build",
     "tauri": "tauri",
     "app:dev": "tauri dev",
-    "app:build": "tauri build --no-bundle && node scripts/copia-dizionari.mjs"
+    "app:build": "tauri build --no-bundle && node scripts/copia-dizionari.mjs",
+    "app:pacchetto": "npm run app:build && node scripts/pacchetto.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.4",

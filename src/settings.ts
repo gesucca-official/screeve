@@ -1,4 +1,8 @@
-// Preferenze della postazione. Per ora in localStorage; il file portable screeve.json è la fase 6.
+import { invoke, isTauri } from '@tauri-apps/api/core';
+
+// Preferenze della postazione, in screeve.json accanto all'eseguibile (o in
+// %APPDATA%\Screeve, vedi src-tauri/src/dati.rs). Il localStorage della WebView ne
+// tiene una copia: all'avvio serve subito, prima che Rust risponda.
 
 export interface Font {
   name: string;    // come appare nelle impostazioni
@@ -29,10 +33,11 @@ export const DEFAULTS: Readonly<Settings> = { font: 'Literata', size: 19, measur
 
 const KEY = 'screeve-settings';
 
-export function loadSettings(): Settings {
+// Valori mancanti o del tipo sbagliato tornano ai predefiniti.
+function valid(text: string | null): Settings {
   const s: Settings = { ...DEFAULTS };
   try {
-    const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+    const saved = JSON.parse(text || '{}');
     for (const k of Object.keys(DEFAULTS) as (keyof Settings)[]) {
       if (typeof saved[k] === typeof DEFAULTS[k]) (s as any)[k] = saved[k];
     }
@@ -41,8 +46,27 @@ export function loadSettings(): Settings {
   return s;
 }
 
+// Dalla copia nel localStorage: immediata.
+export function loadSettings(): Settings {
+  try { return valid(localStorage.getItem(KEY)); } catch { return { ...DEFAULTS }; }
+}
+
+// Da screeve.json; null se il file non c'è ancora (o nel browser).
+export async function loadSettingsFile(): Promise<Settings | null> {
+  if (!isTauri()) return null;
+  const text = await invoke<string | null>('leggi_impostazioni').catch(() => null);
+  return text === null ? null : valid(text);
+}
+
+let timer: number | undefined;
+
+// I cursori mandano un valore a ogni pixel: il file si scrive quando si fermano.
 export function saveSettings(s: Settings): void {
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* non è grave */ }
+  if (!isTauri()) return;
+  clearTimeout(timer);
+  const text = JSON.stringify(s, null, 2) + '\n';
+  timer = setTimeout(() => invoke('salva_impostazioni', { testo: text }).catch(() => {}), 400);
 }
 
 export const fontByName = (name: string): Font => FONTS.find(f => f.name === name) ?? FONTS[0];

@@ -23,4 +23,6 @@ Il codice di Screeve è "tutti i diritti riservati" (vedi [LICENSE](LICENSE)). Q
 
 Dizionario e thesaurus sono file di dati **separati e non modificati**, distribuiti insieme a Screeve ma non incorporati nell'eseguibile: accanto a loro vanno il testo della GPL 3, i README originali e il link ai sorgenti, <https://github.com/LibreOffice/dictionaries/tree/master/it_IT>.
 
-Il testo completo di queste licenze va incluso nella distribuzione (fase 6). Strumenti usati solo per costruire l'app, come Vite e TypeScript, non finiscono nell'eseguibile.
+Le librerie qui sopra ne portano con sé molte altre (soprattutto Tauri, circa 250 crate Rust, quasi tutte MIT o Apache-2.0, qualcuna MPL-2.0, usate senza modifiche). Lo zip di distribuzione, preparato da `npm run app:pacchetto`, contiene nella cartella `licenze/` il testo della licenza di ognuna, ricavato da `cargo metadata` e `npm ls`. Per le poche che non includono un file di licenza è scritto il nome SPDX della licenza.
+
+Strumenti usati solo per costruire l'app, come Vite e TypeScript, non finiscono nell'eseguibile.
