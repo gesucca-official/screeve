@@ -1,0 +1,17 @@
+# Node / Vite
+node_modules/
+dist/
+*.log
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Editor e sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Impostazioni locali di Claude Code
+.claude/settings.local.json

@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screeve — mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400;1,7..72,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400;1,8..60,600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400;1,6..72,600&family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400;1,600&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Vollkorn:ital,wght@0,400;0,600;1,400;1,600&family=Bitter:ital,wght@0,400;0,600;1,400;1,600&family=Alegreya:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F4EDDE;
+    --paper-raised: #FAF5EA;
+    --ink: #3A2A1F;
+    --ink-soft: #7A6452;
+    --ink-faint: #B09C86;
+    --line: rgba(90, 60, 40, .14);
+    --hover: rgba(90, 60, 40, .07);
+    --on: rgba(90, 60, 40, .12);
+    --accent: #8C5A3C;
+    --typo: #B4533A;
+    --select: rgba(176, 128, 72, .28);
+
+    --font: "Literata";
+    --size: 19px;
+    --zoom: 1;
+    --measure: 33em;
+    --ui: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); }
+  body { font-family: var(--ui); -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--select); }
+
+  /* ---------- barra superiore ---------- */
+  .bar {
+    position: fixed; inset: 0 0 auto 0; z-index: 10;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: start;
+    padding: 10px 20px 16px;
+    background: linear-gradient(var(--paper) 78%, transparent);
+    transition: opacity .6s ease;
+  }
+  .status { transition: opacity .6s ease; }
+  body.typing .bar, body.typing .status { opacity: .12; }
+  body.typing .bar:hover, body.typing .status:hover { opacity: 1; }
+
+  .file { font-size: 13px; line-height: 32px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file small { color: var(--ink-faint); margin-left: 6px; }
+
+  .tools { display: grid; justify-items: center; gap: 2px; }
+  .row { display: flex; align-items: center; gap: 2px; }
+  .sep { width: 1px; height: 18px; background: var(--line); margin: 0 8px; }
+
+  .bar button {
+    font: inherit; font-size: 13px; color: var(--ink-soft);
+    background: none; border: 0; border-radius: 7px;
+    height: 32px; min-width: 32px; padding: 0 9px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .bar button:hover { background: var(--hover); color: var(--ink); }
+  .bar button.on { background: var(--on); color: var(--ink); }
+  .tools .glyph { font-family: var(--font), serif; font-size: 17px; padding: 0 7px; }
+  .tools .chars button { height: 28px; min-width: 34px; }
+  .tools .b { font-weight: 700; }
+  .tools .i { font-style: italic; }
+
+  .right { justify-self: end; display: flex; align-items: center; gap: 2px; }
+  .bar .icon { display: grid; place-items: center; padding: 0; }
+  .icon svg { width: 18px; height: 18px; }
+  .spell-btn { display: inline-flex; align-items: center; gap: 7px; margin-right: 6px; }
+  .spell-btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--typo); }
+  .spell-btn.clean .dot { background: #7D8F5E; }
+  kbd {
+    font: 11px var(--ui); color: var(--ink-faint);
+    border: 1px solid var(--line); border-radius: 4px; padding: 0 4px;
+  }
+
+  /* ---------- pagina ---------- */
+  .page {
+    max-width: var(--measure); margin: 0 auto;
+    padding: 20vh 24px 40vh;
+    font-family: var(--font), Georgia, serif; font-size: calc(var(--size) * var(--zoom));
+    line-height: 1.65; font-variant-ligatures: common-ligatures;
+    transition: max-width .3s ease;
+  }
+  #editor { outline: none; caret-color: var(--accent); }
+  #editor h1 { font-size: 1.85em; font-weight: 600; line-height: 1.2; margin: 0 0 .25em; letter-spacing: -.005em; }
+  #editor h2 { font-size: 1.15em; font-weight: 400; font-style: italic; color: var(--ink-soft); margin: 0 0 2.2em; }
+  #editor p { margin: 0 0 .85em; }
+  #editor h2 + h1, #editor p + h1 { margin-top: 2.4em; }
+
+  .typo {
+    text-decoration: underline wavy var(--typo);
+    text-decoration-thickness: 1.4px; text-underline-offset: 4px;
+    text-decoration-skip-ink: none; cursor: pointer; border-radius: 3px;
+  }
+  .typo.current { background: rgba(180, 83, 58, .10); }
+  .fixed { animation: fixed 1.1s ease; border-radius: 3px; }
+  @keyframes fixed { from { background: rgba(125, 143, 94, .35); } to { background: transparent; } }
+
+  /* ---------- popover (refusi e sinonimi) ---------- */
+  .pop {
+    position: fixed; z-index: 20; min-width: 280px; display: none; white-space: nowrap;
+    background: var(--paper-raised); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(60, 40, 20, .12), 0 2px 6px rgba(60, 40, 20, .06);
+    padding: 6px; font-size: 13px;
+  }
+  .pop.open { display: block; }
+  .pop .head { padding: 6px 10px 8px; color: var(--ink-faint); }
+  .pop .head s { color: var(--typo); text-decoration-color: rgba(180, 83, 58, .5); }
+  .pop button {
+    display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 16px;
+    border: 0; background: none; border-radius: 7px; padding: 7px 10px; cursor: pointer;
+    font: inherit; color: var(--ink); text-align: left;
+  }
+  .pop button:hover { background: var(--hover); }
+  .pop .sugg { font-family: var(--font), serif; font-size: 16px; }
+  .pop .sugg:first-of-type { font-weight: 600; }
+  .pop .foot { display: flex; border-top: 1px solid var(--line); margin-top: 4px; padding-top: 4px; }
+  .pop .foot button { color: var(--ink-soft); justify-content: center; }
+
+  .pop.syn { white-space: normal; width: 340px; padding: 6px 6px 8px; }
+  .pop.syn .head b { color: var(--ink); font-weight: 600; }
+  .pop .group { padding: 4px 10px 6px; }
+  .pop .label { font-size: 11px; color: var(--ink-faint); margin-bottom: 4px; }
+  .pop .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pop button.chip {
+    display: inline-block; width: auto; padding: 3px 9px; border-radius: 999px;
+    border: 1px solid var(--line); font-family: var(--font), serif; font-size: 15px;
+  }
+  .pop button.chip:focus { outline: none; background: var(--on); border-color: rgba(90, 60, 40, .3); }
+  .pop .empty { padding: 4px 10px 8px; color: var(--ink-soft); }
+  .pop .empty small { color: var(--ink-faint); }
+  .pop .hint { border-top: 1px solid var(--line); margin-top: 6px; padding: 7px 10px 0; color: var(--ink-faint); font-size: 11px; }
+
+  /* ---------- barra di stato ---------- */
+  .status {
+    position: fixed; inset: auto 0 0 0; height: 40px;
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    font-size: 12px; color: var(--ink-faint);
+    background: linear-gradient(transparent, var(--paper) 45%);
+  }
+  .status .msg { color: #6E7F50; }
+  .zoom { display: inline-flex; align-items: center; }
+  .zoom button {
+    border: 0; background: none; color: var(--ink-faint); font: inherit;
+    height: 24px; min-width: 24px; padding: 0 4px; border-radius: 6px; cursor: pointer;
+  }
+  .zoom button:hover { background: var(--hover); color: var(--ink); }
+  #zoom-out, #zoom-in { font-size: 15px; }
+
+  /* ---------- impostazioni ---------- */
+  .settings {
+    position: fixed; right: 18px; top: 96px; bottom: 52px; z-index: 15; width: 280px;
+    display: none; overflow-y: auto;
+    background: var(--paper-raised); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(60, 40, 20, .08);
+    padding: 14px 14px 18px; font-size: 12px; color: var(--ink-soft);
+  }
+  .settings.open { display: block; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .sheet-head b { color: var(--ink); font-size: 14px; font-weight: 600; }
+  .x {
+    border: 0; background: none; color: var(--ink-faint); font: 20px/1 var(--ui);
+    width: 28px; height: 28px; border-radius: 7px; cursor: pointer;
+  }
+  .x:hover { background: var(--hover); color: var(--ink); }
+  .settings h4 { margin: 16px 2px 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); }
+  .settings h5 { margin: 10px 8px 2px; font-size: 11px; font-weight: 400; color: var(--ink-faint); }
+  .fonts { display: grid; gap: 2px; }
+  .fonts button {
+    border: 0; background: none; text-align: left; padding: 6px 8px; border-radius: 7px; cursor: pointer; color: var(--ink);
+  }
+  .fonts button span { display: block; font-size: 16px; line-height: 1.25; }
+  .fonts button small { font: 11px var(--ui); color: var(--ink-faint); }
+  .fonts button:hover { background: var(--hover); }
+  .fonts button.on { background: var(--on); }
+  .settings label { display: flex; justify-content: space-between; margin: 10px 2px 2px; }
+  .settings input[type=range] { width: 100%; accent-color: var(--accent); }
+  .settings label.check { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: start; cursor: pointer; color: var(--ink); }
+  .settings label.check input { margin: 2px 0 0; accent-color: var(--accent); }
+  .settings label.check small { grid-column: 2; color: var(--ink-faint); }
+  .reset {
+    margin-top: 18px; width: 100%; height: 32px; border: 1px solid var(--line); border-radius: 8px;
+    background: none; color: var(--ink-soft); font: inherit; cursor: pointer;
+  }
+  .reset:hover { background: var(--hover); color: var(--ink); }
+
+  @media (max-width: 1400px) { body:has(.settings.open) .page { margin-left: 24px; margin-right: 300px; } }
+  @media (min-width: 1000px) and (max-width: 1400px) { body:has(.settings.open) .page { margin-left: auto; margin-right: max(300px, calc((100vw - var(--measure)) / 2)); } }
+
+  /* ---------- guida ---------- */
+  .guide {
+    position: fixed; inset: 0; z-index: 30; display: none; overflow-y: auto;
+    background: rgba(244, 237, 222, .82); backdrop-filter: blur(4px);
+    padding: 7vh 16px;
+  }
+  .guide.open { display: block; }
+  .guide-card {
+    position: relative; max-width: 680px; margin: 0 auto;
+    background: var(--paper-raised); border: 1px solid var(--line); border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(60, 40, 20, .12);
+    padding: 36px 44px 40px; font-size: 14px; line-height: 1.6; color: var(--ink);
+  }
+  .guide-card .x { position: absolute; top: 14px; right: 14px; }
+  .guide-card h2 { font: 600 26px/1.2 var(--font), serif; margin: 0 0 4px; }
+  .guide-card h3 { font: 600 17px/1.3 var(--font), serif; margin: 28px 0 6px; }
+  .guide-card p, .guide-card ul { margin: 0 0 10px; color: var(--ink-soft); }
+  .guide-card ul { padding-left: 18px; }
+  .guide-card li { margin-bottom: 3px; }
+  .guide-card b { color: var(--ink); font-weight: 600; }
+  .guide-card .lead { font: italic 16px/1.5 var(--font), serif; color: var(--ink-soft); margin-bottom: 8px; }
+  .guide-card table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .guide-card td { padding: 6px 4px; border-bottom: 1px solid var(--line); color: var(--ink-soft); vertical-align: top; }
+  .guide-card td:last-child { text-align: right; white-space: nowrap; }
+  .guide-card tr.group td { color: var(--ink-faint); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding-top: 16px; }
+  .guide-card kbd { font-size: 12px; color: var(--ink-soft); background: var(--paper); padding: 1px 6px; }
+  .guide-card .g { font-family: var(--font), serif; font-size: 16px; color: var(--ink); }
+
+  @media (max-width: 900px) {
+    .file { display: none; }
+    .bar { grid-template-columns: auto 1fr; }
+    .guide-card { padding: 28px 22px 30px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="file">Il guardiano del faro.docx<small>salvato</small></div>
+
+  <nav class="tools" aria-label="Formattazione">
+    <div class="row">
+      <button data-block="h1" title="Titolo (Ctrl+Alt+1)">Titolo</button>
+      <button data-block="h2" title="Sottotitolo (Ctrl+Alt+2)">Sottotitolo</button>
+      <button data-block="p"  title="Testo (Ctrl+Alt+0)">Testo</button>
+      <span class="sep"></span>
+      <button id="b-bold"   class="glyph b" data-cmd="bold"   title="Grassetto (Ctrl+B)">G</button>
+      <button id="b-italic" class="glyph i" data-cmd="italic" title="Corsivo (Ctrl+I)">C</button>
+      <span class="sep"></span>
+      <button id="b-syn" title="Sinonimi della parola selezionata (Maiusc+F7)">Sinonimi</button>
+    </div>
+    <div class="row chars">
+      <button class="glyph" data-char="È" title="È maiuscola — oppure scrivi E' seguito da spazio">È</button>
+      <button class="glyph" data-char="«" title="Caporale aperta — oppure scrivi &lt;&lt;">«</button>
+      <button class="glyph" data-char="»" title="Caporale chiusa — oppure scrivi &gt;&gt;">»</button>
+      <button class="glyph" data-char="‹" title="Caporale singola aperta">‹</button>
+      <button class="glyph" data-char="›" title="Caporale singola chiusa">›</button>
+      <button class="glyph" id="b-wrap" title="Racchiudi la selezione tra caporali (Ctrl+Maiusc+')">«…»</button>
+    </div>
+  </nav>
+
+  <div class="right">
+    <button class="spell-btn" id="spell" title="Vai al prossimo refuso (F7)">
+      <span class="dot"></span><span id="spell-label">refusi</span><kbd>F7</kbd>
+    </button>
+    <button class="icon" id="b-settings" title="Impostazioni (Ctrl+,)" aria-label="Impostazioni">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+    </button>
+    <button class="icon" id="b-guide" title="Guida (F1)" aria-label="Guida">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r=".7" fill="currentColor"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="page">
+  <article id="editor" contenteditable="true" spellcheck="false">
+    <h1>Il guardiano del faro</h1>
+    <h2>Capitolo primo</h2>
+    <p>Ogni sera, prima che il sole toccasse il mare, Elia saliva i centotrentadue gradini del faro contandoli a voce bassa. Non lo faceva per abitudine, ma <span class="typo" data-sugg="perché">perchè</span> temeva che un giorno ne avrebbe trovato uno in più, o uno in meno, e che quella differenza avrebbe significato qualcosa.</p>
+    <p>«<span class="typo" data-sugg="Qual è">Qual'è</span> il senso di contare ciò che non cambia?» gli aveva chiesto una volta sua sorella, ridendo. Lui non aveva risposto. Aveva solo alzato le spalle, come si fa con le domande troppo grandi per una scala così stretta.</p>
+    <p>In cima, la lanterna lo aspettava con la pazienza delle cose antiche. Elia ne puliva il vetro con un panno di lino, <span class="typo" data-sugg="soprattutto">sopratutto</span> sul lato che guardava a <em>ponente</em>, dove il sale si posava più fitto. Era il suo <span class="typo" data-sugg="proprio|propino|prossimo">propio</span> modo di dire buonasera alla notte.</p>
+    <p>Quella sera, però, il vento <span class="typo" data-sugg="accelerava|acclamava">accellerava</span> da nord, e sull’orizzonte comparve una luce che non avrebbe dovuto esserci. ‹Una barca›, pensò. Poi si corresse: <em>nessuna barca brilla così</em>.</p>
+    <p>È strano, si disse, come le cose che aspetti da una vita arrivino sempre nel momento in cui hai smesso di guardare.</p>
+  </article>
+</main>
+
+<div class="pop" id="pop" role="dialog" aria-label="Suggerimenti"></div>
+
+<footer class="status">
+  <span id="count"></span>
+  <span class="zoom">
+    <button id="zoom-out" title="Rimpicciolisci il testo (Ctrl+−)">−</button>
+    <button id="zoom-val" title="Dimensione normale (Ctrl+0)">100%</button>
+    <button id="zoom-in" title="Ingrandisci il testo (Ctrl++)">+</button>
+  </span>
+  <span class="msg" id="msg"></span>
+</footer>
+
+<aside class="settings" id="settings" aria-label="Impostazioni">
+  <div class="sheet-head"><b>Impostazioni</b><button class="x" id="settings-close" aria-label="Chiudi">×</button></div>
+  <h4>Font</h4>
+  <div class="fonts" id="fonts"></div>
+  <h4>Testo</h4>
+  <label>Dimensione <span id="size-val"></span></label>
+  <input type="range" id="size" min="15" max="26" step="0.5">
+  <label>Larghezza colonna <span id="cpl"></span></label>
+  <input type="range" id="measure" min="26" max="42" step="0.5">
+  <h4>Scrittura</h4>
+  <label class="check"><input type="checkbox" id="auto"> Correzioni automatiche <small>&lt;&lt; → « &nbsp;·&nbsp; &gt;&gt; → » &nbsp;·&nbsp; E' → È</small></label>
+  <button class="reset" id="reset">Ripristina predefiniti</button>
+</aside>
+
+<div class="guide" id="guide" role="dialog" aria-modal="true" aria-label="Guida">
+  <div class="guide-card">
+    <button class="x" id="guide-close" aria-label="Chiudi">×</button>
+    <h2>Guida a Screeve</h2>
+    <p class="lead">Un foglio, una penna, e niente altro. Screeve è fatto per scrivere in italiano senza distrazioni.</p>
+
+    <h3>Scrivere senza distrazioni</h3>
+    <p>Mentre scrivi, le barre in alto e in basso si ritirano quasi del tutto. Basta muovere il mouse per farle tornare.</p>
+    <p>La colonna di testo ha sempre la stessa larghezza, circa 65 caratteri per riga: è la misura più riposante per l'occhio. Allargando la finestra crescono i margini, non le righe.</p>
+
+    <h3>Struttura del testo</h3>
+    <ul>
+      <li><b>Titolo</b> per i capitoli, <b>Sottotitolo</b> per ciò che sta sotto, <b>Testo</b> per tutto il resto. Ripremi Titolo o Sottotitolo per tornare a Testo.</li>
+      <li><b>G</b> e <b>C</b> applicano grassetto e corsivo.</li>
+      <li>In Word e Google Documenti i titoli diventano <i>Titolo 1</i> e <i>Titolo 2</i>: compaiono nella struttura del documento e negli indici automatici.</li>
+    </ul>
+
+    <h3>Caratteri italiani</h3>
+    <p>La seconda riga della barra inserisce i caratteri scomodi da trovare sulla tastiera: <span class="g">È « » ‹ ›</span>. Il pulsante <span class="g">«…»</span> racchiude tra caporali il testo selezionato.</p>
+    <p>Con le <b>correzioni automatiche</b> attive puoi anche scrivere <kbd>&lt;&lt;</kbd> per <span class="g">«</span>, <kbd>&gt;&gt;</kbd> per <span class="g">»</span> ed <kbd>E'</kbd> seguito da spazio per <span class="g">È</span>. Si disattivano dalle impostazioni.</p>
+
+    <h3>Refusi</h3>
+    <ul>
+      <li>Le parole sconosciute sono sottolineate da un'onda color terracotta. In alto a destra vedi quante sono.</li>
+      <li><kbd>F7</kbd> porta al refuso successivo e mostra i suggerimenti.</li>
+      <li><kbd>Alt</kbd>+<kbd>Invio</kbd> applica il primo suggerimento al refuso sotto il cursore, o a quello appena scritto: puoi correggere senza staccare le mani dalla tastiera.</li>
+      <li><b>Ignora</b> lascia la parola com'è; <b>Aggiungi al dizionario</b> la ricorda per sempre, utile per nomi di personaggi e luoghi inventati.</li>
+    </ul>
+
+    <h3>Sinonimi</h3>
+    <p>Seleziona una parola, o mettici sopra il cursore, e premi <kbd>Maiusc</kbd>+<kbd>F7</kbd> o il pulsante <b>Sinonimi</b>. Scegli con le frecce e conferma con <kbd>Invio</kbd>. La parola nuova eredita maiuscola, corsivo e grassetto.</p>
+
+    <h3>Dimensione del testo</h3>
+    <p>Con <kbd>Ctrl</kbd>+<kbd>+</kbd> e <kbd>Ctrl</kbd>+<kbd>−</kbd> ingrandisci o rimpicciolisci tutto il testo, per esempio quando lo schermo è lontano. <kbd>Ctrl</kbd>+<kbd>0</kbd> torna al 100%. Lo zoom riguarda solo lo schermo: il documento non cambia.</p>
+
+    <h3>Impostazioni</h3>
+    <p>Il pulsante con i cursori, in alto a destra, apre le impostazioni: font, dimensione di base, larghezza della colonna e correzioni automatiche. <b>Ripristina predefiniti</b> riporta tutto com'era.</p>
+
+    <h3>File</h3>
+    <p>Screeve apre e salva file <b>.docx</b>, che si aprono identici in Word e Google Documenti. Se apri un documento con elementi che Screeve non gestisce, come tabelle o immagini, ti avvisa prima e ti propone di salvare una copia, così l'originale resta intatto.</p>
+
+    <h3>Scorciatoie</h3>
+    <table>
+      <tr class="group"><td colspan="2">File</td></tr>
+      <tr><td>Nuovo · Apri · Salva</td><td><kbd>Ctrl</kbd>+<kbd>N</kbd> · <kbd>Ctrl</kbd>+<kbd>O</kbd> · <kbd>Ctrl</kbd>+<kbd>S</kbd></td></tr>
+      <tr><td>Salva con nome</td><td><kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>S</kbd></td></tr>
+      <tr class="group"><td colspan="2">Formattazione</td></tr>
+      <tr><td>Grassetto · Corsivo</td><td><kbd>Ctrl</kbd>+<kbd>B</kbd> · <kbd>Ctrl</kbd>+<kbd>I</kbd></td></tr>
+      <tr><td>Titolo · Sottotitolo · Testo</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>1</kbd> · <kbd>2</kbd> · <kbd>0</kbd></td></tr>
+      <tr><td>Racchiudi la selezione in « »</td><td><kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>'</kbd></td></tr>
+      <tr><td>Annulla · Ripeti</td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> · <kbd>Ctrl</kbd>+<kbd>Y</kbd></td></tr>
+      <tr class="group"><td colspan="2">Revisione</td></tr>
+      <tr><td>Prossimo refuso</td><td><kbd>F7</kbd></td></tr>
+      <tr><td>Correggi il refuso</td><td><kbd>Alt</kbd>+<kbd>Invio</kbd></td></tr>
+      <tr><td>Scegli il 2° o 3° suggerimento</td><td><kbd>Alt</kbd>+<kbd>2</kbd> · <kbd>Alt</kbd>+<kbd>3</kbd></td></tr>
+      <tr><td>Sinonimi</td><td><kbd>Maiusc</kbd>+<kbd>F7</kbd></td></tr>
+      <tr class="group"><td colspan="2">Vista</td></tr>
+      <tr><td>Ingrandisci · Rimpicciolisci · 100%</td><td><kbd>Ctrl</kbd>+<kbd>+</kbd> · <kbd>Ctrl</kbd>+<kbd>−</kbd> · <kbd>Ctrl</kbd>+<kbd>0</kbd></td></tr>
+      <tr><td>Impostazioni</td><td><kbd>Ctrl</kbd>+<kbd>,</kbd></td></tr>
+      <tr><td>Guida</td><td><kbd>F1</kbd></td></tr>
+      <tr><td>Chiudi finestre e suggerimenti</td><td><kbd>Esc</kbd></td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+const ed = document.getElementById('editor');
+const $ = s => document.querySelector(s);
+const root = document.documentElement.style;
+document.execCommand('defaultParagraphSeparator', false, 'p');
+
+/* ---------- impostazioni ---------- */
+const FONTS = [
+  { name: 'Literata',       size: 19,   note: 'nato per la lettura lunga su schermo', group: 'Raffinati' },
+  { name: 'Source Serif 4', size: 19.5, note: 'sobrio, nitido, molto leggibile',      group: 'Raffinati' },
+  { name: 'Newsreader',     size: 20.5, note: 'editoriale, caldo',                    group: 'Raffinati' },
+  { name: 'Lora',           size: 18.5, note: 'morbido, quasi calligrafico',          group: 'Raffinati' },
+  { name: 'EB Garamond',    size: 22,   note: 'il classico da libro',                 group: 'Raffinati' },
+  { name: 'Crimson Pro',    size: 21.5, note: 'garalde elegante e leggero',           group: 'Raffinati' },
+  { name: 'Merriweather',   size: 17.5, note: 'robusto, occhio grande, regge ogni schermo', group: 'Corposi' },
+  { name: 'Vollkorn',       size: 20,   note: 'scuro e caldo, il "pane quotidiano"',  group: 'Corposi' },
+  { name: 'Bitter',         size: 18,   note: 'graziato squadrato, molto stabile',    group: 'Corposi' },
+  { name: 'Alegreya',       size: 20,   note: 'denso e vivace, ritmo calligrafico',   group: 'Corposi' },
+];
+const DEFAULTS = { font: 'Literata', size: 19, measure: 33, auto: true };
+let settings = { ...DEFAULTS };
+try { Object.assign(settings, JSON.parse(localStorage.getItem('screeve-settings') || '{}')); } catch {}
+
+function saveSettings() {
+  try { localStorage.setItem('screeve-settings', JSON.stringify(settings)); } catch {}
+}
+
+function applySettings() {
+  root.setProperty('--font', `"${settings.font}"`);
+  root.setProperty('--size', settings.size + 'px');
+  root.setProperty('--measure', settings.measure + 'em');
+  document.querySelectorAll('#fonts button').forEach(b => b.classList.toggle('on', b.dataset.font === settings.font));
+  $('#size').value = settings.size;
+  $('#size-val').textContent = settings.size + ' px';
+  $('#measure').value = settings.measure;
+  $('#auto').checked = settings.auto;
+  setTimeout(updateCpl, 320);
+}
+
+function setSetting(patch) {
+  Object.assign(settings, patch);
+  saveSettings();
+  applySettings();
+}
+
+let lastGroup;
+$('#fonts').innerHTML = FONTS.map(f => {
+  const h = f.group !== lastGroup ? `<h5>${f.group}</h5>` : '';
+  lastGroup = f.group;
+  return h + `<button data-font="${f.name}"><span style="font-family:'${f.name}'">${f.name}</span><small>${f.note}</small></button>`;
+}).join('');
+
+$('#fonts').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const f = FONTS.find(x => x.name === b.dataset.font);
+  setSetting({ font: f.name, size: f.size }); // ogni font ha il suo corpo ideale
+});
+$('#size').addEventListener('input', e => setSetting({ size: +e.target.value }));
+$('#measure').addEventListener('input', e => setSetting({ measure: +e.target.value }));
+$('#auto').addEventListener('change', e => setSetting({ auto: e.target.checked }));
+$('#reset').addEventListener('click', () => { setSetting({ ...DEFAULTS }); flash('Impostazioni predefinite ripristinate'); });
+
+function toggleSettings(force) {
+  const open = $('#settings').classList.toggle('open', force);
+  $('#b-settings').classList.toggle('on', open);
+  setTimeout(updateCpl, 320);
+}
+$('#b-settings').addEventListener('click', () => toggleSettings());
+$('#settings-close').addEventListener('click', () => toggleSettings(false));
+
+/* ---------- guida ---------- */
+function toggleGuide(force) {
+  const open = $('#guide').classList.toggle('open', force);
+  if (open) { closePop(); $('#guide').scrollTop = 0; }
+  else ed.focus();
+}
+$('#b-guide').addEventListener('click', () => toggleGuide());
+$('#guide-close').addEventListener('click', () => toggleGuide(false));
+$('#guide').addEventListener('click', e => { if (e.target.id === 'guide') toggleGuide(false); });
+
+/* ---------- blocchi e stili ---------- */
+function currentBlock() {
+  const s = getSelection();
+  if (!s.rangeCount) return null;
+  let n = s.anchorNode;
+  if (n && n.nodeType === 3) n = n.parentNode;
+  const b = n && n.closest ? n.closest('h1,h2,p') : null;
+  return b && ed.contains(b) ? b : null;
+}
+
+function setBlock(tag) {
+  const b = currentBlock();
+  const cur = b ? b.tagName.toLowerCase() : 'p';
+  if (cur === tag && tag !== 'p') tag = 'p';
+  document.execCommand('formatBlock', false, tag);
+  refreshToolbar();
+}
+
+function refreshToolbar() {
+  const b = currentBlock();
+  if (!b) return;
+  const tag = b.tagName.toLowerCase();
+  document.querySelectorAll('[data-block]').forEach(x => x.classList.toggle('on', x.dataset.block === tag));
+  $('#b-bold').classList.toggle('on', tag === 'p' && document.queryCommandState('bold'));
+  $('#b-italic').classList.toggle('on', document.queryCommandState('italic'));
+}
+document.addEventListener('selectionchange', refreshToolbar);
+
+// il doppio clic su Windows include lo spazio finale: lo escludiamo
+function trimTrailingSpace(r) {
+  if (r.endContainer.nodeType === 3 && r.endOffset > 0 && r.endContainer.data[r.endOffset - 1] === ' ') {
+    r.setEnd(r.endContainer, r.endOffset - 1);
+  }
+}
+
+function wrapGuillemets() {
+  const s = getSelection();
+  if (!s.rangeCount) return;
+  const r = s.getRangeAt(0);
+  if (r.collapsed) {
+    document.execCommand('insertText', false, '«»');
+    s.modify('move', 'backward', 'character');
+    return;
+  }
+  trimTrailingSpace(r);
+  const end = r.cloneRange(); end.collapse(false); end.insertNode(document.createTextNode('»'));
+  const start = r.cloneRange(); start.collapse(true); start.insertNode(document.createTextNode('«'));
+  ed.normalize();
+  updateCount();
+}
+
+document.querySelector('.tools').addEventListener('mousedown', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  e.preventDefault(); // non rubare il focus all'editor
+  if (btn.dataset.block) setBlock(btn.dataset.block);
+  else if (btn.dataset.cmd) { document.execCommand(btn.dataset.cmd); refreshToolbar(); }
+  else if (btn.dataset.char) document.execCommand('insertText', false, btn.dataset.char);
+  else if (btn.id === 'b-wrap') wrapGuillemets();
+  else if (btn.id === 'b-syn') openSynonyms();
+});
+
+/* ---------- correzioni automatiche durante la digitazione ---------- */
+function replaceBeforeCaret(node, offset, len, str) {
+  node.replaceData(offset - len, len, str);
+  const r = document.createRange();
+  r.setStart(node, offset - len + str.length);
+  r.collapse(true);
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+
+ed.addEventListener('input', e => {
+  updateCountSoon();
+  closePop();
+  if (!settings.auto || e.inputType !== 'insertText') return;
+  const s = getSelection();
+  if (!s.isCollapsed || !s.anchorNode || s.anchorNode.nodeType !== 3) return;
+  const n = s.anchorNode, o = s.anchorOffset, before = n.data.slice(0, o);
+  let m;
+  if (before.endsWith('<<')) { replaceBeforeCaret(n, o, 2, '«'); flash('<< → «'); }
+  else if (before.endsWith('>>')) { replaceBeforeCaret(n, o, 2, '»'); flash('>> → »'); }
+  else if ((m = before.match(/(?:^|[\s«"‹(—])E['’]([\s.,;:!?»])$/))) {
+    replaceBeforeCaret(n, o, 3, 'È' + m[1]); flash("E' → È");
+  }
+});
+
+/* ---------- refusi ---------- */
+const pop = $('#pop');
+let current = null;
+let synRange = null;
+
+const typos = () => [...ed.querySelectorAll('.typo')];
+
+function updateTypoCount() {
+  const n = typos().length;
+  $('#spell-label').textContent = n === 0 ? 'Nessun refuso' : n === 1 ? '1 refuso' : n + ' refusi';
+  $('#spell').classList.toggle('clean', n === 0);
+}
+
+function openPop(span) {
+  closePop();
+  current = span;
+  span.classList.add('current');
+  const sugg = span.dataset.sugg.split('|');
+  pop.innerHTML =
+    `<div class="head"><s>${span.textContent}</s> &nbsp;forse cercavi</div>` +
+    sugg.map((w, i) => `<button class="sugg" data-w="${w}"><span>${w}</span><kbd>${i === 0 ? 'Alt+Invio' : 'Alt+' + (i + 1)}</kbd></button>`).join('') +
+    `<div class="foot"><button data-act="ignore">Ignora</button><button data-act="learn">Aggiungi al dizionario</button></div>`;
+  pop.classList.add('open');
+  placePop(span.getBoundingClientRect());
+}
+
+// sotto la parola, oppure sopra se in fondo alla finestra non c'è spazio
+function placePop(r) {
+  pop.style.left = Math.max(8, Math.min(r.left, innerWidth - pop.offsetWidth - 8)) + 'px';
+  const below = r.bottom + 8;
+  pop.style.top = (below + pop.offsetHeight > innerHeight - 8 ? r.top - pop.offsetHeight - 8 : below) + 'px';
+}
+
+function closePop() {
+  pop.classList.remove('open', 'syn');
+  if (current) current.classList.remove('current');
+  current = null;
+  synRange = null;
+}
+
+function caretAfter(node) {
+  const r = document.createRange();
+  r.setStartAfter(node); r.collapse(true);
+  ed.focus();
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+
+function applyFix(span, word) {
+  const done = document.createElement('span');
+  done.className = 'fixed';
+  done.textContent = word;
+  span.replaceWith(done);
+  caretAfter(done);
+  // nel mockup lasciamo lo span: scartarlo sposterebbe il cursore mentre si scrive
+  setTimeout(() => done.removeAttribute('class'), 1200);
+  closePop();
+  updateTypoCount();
+  flash(`Corretto: ${word}`);
+}
+
+function unmark(span) {
+  const t = document.createTextNode(span.textContent);
+  span.replaceWith(t);
+  caretAfter(t);
+  closePop();
+  updateTypoCount();
+}
+
+pop.addEventListener('mousedown', e => e.preventDefault());
+pop.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b && b.dataset.syn) { replaceWithSynonym(b.dataset.syn); return; }
+  if (!b || !current) return;
+  if (b.dataset.w) applyFix(current, b.dataset.w);
+  else if (b.dataset.act === 'ignore') unmark(current);
+  else if (b.dataset.act === 'learn') { flash(`«${current.textContent}» aggiunto al dizionario`); unmark(current); }
+});
+
+ed.addEventListener('click', e => {
+  const t = e.target.closest('.typo');
+  if (t) openPop(t); else closePop();
+});
+
+// posizione di ogni refuso rispetto al cursore: -1 dopo il cursore, 0 sotto, 1 prima
+function relToCaret() {
+  const s = getSelection();
+  if (!s.rangeCount) return typos().map(t => ({ t, p: -1 }));
+  const c = s.getRangeAt(0);
+  return typos().map(t => {
+    const r = document.createRange(); r.selectNodeContents(t);
+    return { t, p: r.comparePoint(c.startContainer, c.startOffset) };
+  });
+}
+
+// Alt+Invio: il refuso sotto il cursore, altrimenti l'ultimo appena scritto
+function typoForQuickFix() {
+  if (current) return current;
+  const rel = relToCaret();
+  return (rel.find(x => x.p === 0) || rel.filter(x => x.p === 1).pop() || rel[0] || {}).t;
+}
+
+function gotoNextTypo() {
+  const list = typos();
+  if (!list.length) { flash('Nessun refuso, ottimo lavoro'); return; }
+  let next;
+  if (current) next = list[(list.indexOf(current) + 1) % list.length];
+  else next = (relToCaret().find(x => x.p === -1) || { t: list[0] }).t;
+  next.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const r = document.createRange(); r.selectNodeContents(next);
+  ed.focus();
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  setTimeout(() => openPop(next), 250);
+}
+
+$('#spell').addEventListener('mousedown', e => { e.preventDefault(); gotoNextTypo(); });
+
+/* ---------- sinonimi ---------- */
+// Nel mockup un piccolo campione; l'app userà il thesaurus italiano di LibreOffice.
+// "lemma" indica una parola flessa: i sinonimi vanno proposti nella stessa forma.
+const THESAURUS = {
+  pazienza: { groups: [['calma', 'calma, flemma, tolleranza, sopportazione'], ['costanza', 'costanza, perseveranza, tenacia']] },
+  antiche: { lemma: 'antico', groups: [['vecchio', 'vecchie, remote, arcaiche, secolari, vetuste']] },
+  strano: { groups: [['insolito', 'insolito, curioso, singolare, bizzarro'], ['inspiegabile', 'inspiegabile, misterioso, enigmatico']] },
+  stretta: { lemma: 'stretto', groups: [['angusto', 'angusta, ristretta, esigua, sacrificata']] },
+  fitto: { groups: [['denso', 'denso, spesso, compatto, folto']] },
+  luce: { groups: [['chiarore', 'chiarore, bagliore, lume, luminosità'], ['riflesso', 'riflesso, barlume, scintillio']] },
+  domande: { lemma: 'domanda', groups: [['quesito', 'quesiti, interrogativi, questioni']] },
+  brilla: { lemma: 'brillare', groups: [['splendere', 'splende, risplende, luccica, scintilla, sfavilla']] },
+  guardare: { groups: [['osservare', 'osservare, contemplare, scrutare, fissare, mirare']] },
+};
+
+// la selezione, oppure la parola sotto il cursore
+function wordRange() {
+  const s = getSelection();
+  if (!s.rangeCount || !ed.contains(s.anchorNode)) return null;
+  const r = s.getRangeAt(0).cloneRange();
+  if (!r.collapsed) { trimTrailingSpace(r); return r; }
+  const n = r.startContainer;
+  if (n.nodeType !== 3) return null;
+  const isLetter = c => /\p{L}/u.test(c);
+  let a = r.startOffset, b = a;
+  while (a > 0 && isLetter(n.data[a - 1])) a--;
+  while (b < n.data.length && isLetter(n.data[b])) b++;
+  if (a === b) return null;
+  r.setStart(n, a); r.setEnd(n, b);
+  return r;
+}
+
+function openSynonyms() {
+  const r = wordRange();
+  if (!r) { flash('Seleziona una parola per cercarne i sinonimi'); return; }
+  const word = r.toString().trim();
+  const entry = THESAURUS[word.toLowerCase()];
+  closePop();
+  synRange = r;
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  const cap = w => word[0] === word[0].toUpperCase() ? w[0].toUpperCase() + w.slice(1) : w;
+  pop.innerHTML =
+    `<div class="head">Sinonimi di <b>${word}</b>${entry && entry.lemma ? ` &nbsp;da «${entry.lemma}»` : ''}</div>` +
+    (entry
+      ? entry.groups.map(([label, words]) =>
+          `<div class="group"><div class="label">${label}</div><div class="chips">` +
+          words.split(', ').map(w => `<button class="chip" data-syn="${cap(w)}">${cap(w)}</button>`).join('') +
+          `</div></div>`).join('')
+      : `<div class="empty">Nessun sinonimo trovato.<br><small>Nel mockup prova con: ${Object.keys(THESAURUS).join(', ')}.</small></div>`) +
+    `<div class="hint"><kbd>←</kbd> <kbd>→</kbd> scegli &nbsp;·&nbsp; <kbd>Invio</kbd> sostituisci &nbsp;·&nbsp; <kbd>Esc</kbd> chiudi</div>`;
+  pop.classList.add('open', 'syn');
+  placePop(r.getBoundingClientRect());
+  const first = pop.querySelector('.chip');
+  if (first) first.focus({ preventScroll: true });
+}
+
+function restoreRange(r) {
+  ed.focus();
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+
+function replaceWithSynonym(w) {
+  const r = synRange;
+  closePop();
+  restoreRange(r);
+  document.execCommand('insertText', false, w); // conserva corsivo/grassetto e l'annulla
+  flash(`Sostituito con «${w}»`);
+}
+
+pop.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && synRange) {
+    e.preventDefault(); e.stopPropagation();
+    const r = synRange; closePop(); restoreRange(r);
+    return;
+  }
+  const chips = [...pop.querySelectorAll('.chip')];
+  const i = chips.indexOf(document.activeElement);
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  if (i >= 0 && step) {
+    e.preventDefault();
+    chips[(i + step + chips.length) % chips.length].focus({ preventScroll: true });
+  }
+});
+
+/* ---------- ingrandimento del testo ---------- */
+const ZOOMS = [0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6, 1.8, 2];
+let zoomIndex = 3;
+
+function setZoom(i) {
+  zoomIndex = Math.max(0, Math.min(ZOOMS.length - 1, i));
+  root.setProperty('--zoom', ZOOMS[zoomIndex]);
+  $('#zoom-val').textContent = Math.round(ZOOMS[zoomIndex] * 100) + '%';
+  closePop();
+  requestAnimationFrame(updateCpl);
+}
+
+document.querySelector('.zoom').addEventListener('mousedown', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  e.preventDefault();
+  setZoom(b.id === 'zoom-in' ? zoomIndex + 1 : b.id === 'zoom-out' ? zoomIndex - 1 : 3);
+});
+
+addEventListener('wheel', e => {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  setZoom(zoomIndex + (e.deltaY < 0 ? 1 : -1));
+}, { passive: false });
+
+/* ---------- tastiera ---------- */
+document.addEventListener('keydown', e => {
+  if (e.key === 'F1') { e.preventDefault(); toggleGuide(); return; }
+  if (e.key === 'Escape') {
+    if ($('#guide').classList.contains('open')) toggleGuide(false);
+    else if (pop.classList.contains('open')) closePop();
+    else if ($('#settings').classList.contains('open')) toggleSettings(false);
+    return;
+  }
+  if (e.ctrlKey && !e.altKey && e.key === ',') { e.preventDefault(); toggleSettings(); return; }
+  if (e.key === 'F7' && e.shiftKey) { e.preventDefault(); openSynonyms(); return; }
+  if (e.key === 'F7') { e.preventDefault(); gotoNextTypo(); return; }
+  if (e.ctrlKey && !e.altKey && ['+', '=', '-', '0'].includes(e.key)) {
+    e.preventDefault();
+    setZoom(e.key === '0' ? 3 : e.key === '-' ? zoomIndex - 1 : zoomIndex + 1);
+    return;
+  }
+  if (e.altKey && !e.ctrlKey && e.key === 'Enter') {
+    e.preventDefault();
+    const t = typoForQuickFix();
+    if (t) applyFix(t, t.dataset.sugg.split('|')[0]);
+    return;
+  }
+  if (e.altKey && !e.ctrlKey && current && /^[1-9]$/.test(e.key)) {
+    const w = current.dataset.sugg.split('|')[+e.key - 1];
+    if (w) { e.preventDefault(); applyFix(current, w); }
+    return;
+  }
+  if (e.ctrlKey && e.altKey && ['0', '1', '2'].includes(e.key)) {
+    e.preventDefault(); setBlock({ 0: 'p', 1: 'h1', 2: 'h2' }[e.key]); return;
+  }
+  if (e.ctrlKey && e.shiftKey && (e.code === 'Minus' || e.key === "'" || e.key === '?')) {
+    e.preventDefault(); wrapGuillemets();
+  }
+});
+
+/* ---------- interfaccia che si ritira mentre scrivi ---------- */
+ed.addEventListener('keydown', e => {
+  if (e.key.length === 1 && !e.ctrlKey && !e.altKey) document.body.classList.add('typing');
+});
+let lx, ly;
+document.addEventListener('mousemove', e => {
+  if (lx !== undefined && Math.hypot(e.clientX - lx, e.clientY - ly) > 4) document.body.classList.remove('typing');
+  lx = e.clientX; ly = e.clientY;
+});
+addEventListener('scroll', closePop, { passive: true });
+
+/* ---------- conteggi e messaggi ---------- */
+const fmt = n => n.toLocaleString('it-IT');
+function updateCount() {
+  const text = ed.innerText;
+  const words = (text.match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu) || []).length;
+  const chars = text.replace(/\n/g, '').length;
+  const min = Math.max(1, Math.round(words / 230));
+  $('#count').textContent = `${fmt(words)} parole · ${fmt(chars)} caratteri · ${min} min di lettura`;
+  updateCpl();
+}
+let countTimer;
+const updateCountSoon = () => { clearTimeout(countTimer); countTimer = setTimeout(updateCount, 300); };
+
+let msgTimer;
+function flash(text) {
+  $('#msg').textContent = text;
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => $('#msg').textContent = '', 2200);
+}
+
+function updateCpl() {
+  let tot = 0, cnt = 0;
+  for (const p of ed.querySelectorAll('p')) {
+    const lh = parseFloat(getComputedStyle(p).fontSize) * 1.65;
+    const lines = Math.round(p.getBoundingClientRect().height / lh);
+    if (lines >= 3) { tot += p.textContent.length / (lines - 0.5); cnt++; }
+  }
+  $('#cpl').textContent = cnt ? `≈ ${Math.round(tot / cnt)} caratteri per riga` : '';
+}
+
+applySettings();
+updateTypoCount();
+document.fonts.ready.then(updateCount);
+</script>
+</body>
+</html>
