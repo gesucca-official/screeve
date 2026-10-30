@@ -98,7 +98,7 @@ Icona "i" in alto a destra (o **F1**): finestra sovrapposta, scorrevole, chiusa 
 
 - Si seleziona una parola (o basta avere il cursore sopra) e si preme **Maiusc+F7** (come in Word) o il pulsante **Sinonimi**.
 - Popover con i sinonimi raggruppati per significato; si sceglie con frecce + Invio o col clic. La sostituzione conserva maiuscola iniziale, corsivo e grassetto ed è annullabile con Ctrl+Z.
-- Fonte: **thesaurus italiano di LibreOffice** (formato MyThes `th_it_IT_v2.idx/.dat`), letto in Rust con ricerca nell'indice, senza caricarlo tutto in memoria. GPL 3 come il dizionario: anche lui resta un file separato in `dizionari/`.
+- Fonte: **thesaurus italiano di LibreOffice** (formato MyThes `th_it_IT_v2.dat`, 2 MB): si tiene in memoria con un indice costruito all'avvio (~25 ms), le voci si leggono solo quando servono. GPL 3 come il dizionario: anche lui resta un file separato in `dizionari/`.
 - **Il punto difficile è la flessione.** Il thesaurus contiene forme base (*antico*, *brillare*), ma nel testo si scrive *antiche*, *brilla*. Piano a due passi:
   1. **MVP:** dalla forma flessa si risale al lemma con le regole del dizionario Hunspell (le stesse del correttore) e si mostrano i sinonimi del lemma, dicendo chiaramente "da «antico»". Chi scrive adatta la desinenza.
   2. **Poi:** i sinonimi vengono proposti già nella forma giusta (*vecchie*, *risplende*): regole per sostantivi e aggettivi regolari, e per i verbi la stessa persona e lo stesso tempo, usando le forme generate dal dizionario. Il mockup mostra già questo comportamento.
@@ -144,7 +144,7 @@ Correzioni automatiche mentre scrivi (disattivabili): `<<` → «, `>>` → », 
 2. ✅ **Editor** — schema ProseMirror ristretto, barra con titolo/sottotitolo/testo e G/C, caratteri speciali in colonna sul lato destro, avvolgi in « », correzioni automatiche, conteggio parole, ingrandimento del testo, UI che si ritira, pannello Impostazioni, Guida.
 3. ✅ **DOCX** — Nuovo/Apri/Salva/Salva con nome, scrittura e poi lettura, avviso sui contenuti non supportati, test di round-trip. Provato a mano in Word e Google Documenti. Menu File cliccabile sul nome del file.
 4. ✅ **Correttore** — spellbook + it_IT, decorazioni, popover, F7/Alt+Invio/Alt+2-5, Ignora, dizionario personale, regole italiane. Codice in `src-tauri/src/correttore/` e `src/correttore.ts`, test con `cargo test correttore`. Il dizionario personale sta già accanto all'eseguibile o in `%APPDATA%\Screeve` (`src-tauri/src/dati.rs`).
-5. **Sinonimi** — thesaurus MyThes, popover, lemma dalla forma flessa (MVP), poi sinonimi già flessi.
+5. ✅ **Sinonimi (MVP)** — thesaurus MyThes, popover con frecce/Invio/Esc, lemma dalla forma flessa con le regole SFX del dizionario al contrario più i singolari (case → casa, antiche → antico, brillavano → brillare, dirtelo → dire). Codice in `src-tauri/src/sinonimi/` e `src/sinonimi.ts`. Limiti: i passati remoti irregolari (corse → correre) non si trovano. Resta per dopo: sinonimi già flessi.
 6. **Rifinitura** — salvataggio automatico e recupero dopo crash, impostazioni portable, file recenti, icona, firma dell'eseguibile.
 
 Idee per dopo (fuori dal minimo): modalità macchina da scrivere (riga corrente sempre al centro), focus sul paragrafo corrente, tema notte, lineetta di dialogo `—` con `--`, obiettivo di parole giornaliero, esportazione PDF/EPUB.

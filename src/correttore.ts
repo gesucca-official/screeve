@@ -3,8 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import type { Node } from 'prosemirror-model';
 import { TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
-import { elencoRefusi, refuso, refusiKey, type Intervallo, type RefusiMeta } from './editor';
-import { schema } from './editor/schema';
+import { elencoRefusi, refuso, refusiKey, replaceWord, type Intervallo, type RefusiMeta } from './editor';
 
 // Correttore ortografico: invia a Rust (src-tauri/src/correttore) i paragrafi
 // cambiati, disegna i refusi come decorazioni e gestisce F7, Alt+Invio, Alt+2/3 e
@@ -182,20 +181,13 @@ export function gestioneCorrettore({ view, flash }: CorrettoreOptions) {
   addEventListener('scroll', posiziona, { passive: true });
 
   /* ---------- azioni ---------- */
-  // La parola nuova eredita grassetto e corsivo, e la maiuscola iniziale.
   function correggi(r: Intervallo, nuova: string): void {
     chiudi();
-    const { state } = view;
-    const vecchia = state.doc.textBetween(r.from, r.to);
-    if (/^\p{Lu}/u.test(vecchia)) nuova = nuova.charAt(0).toUpperCase() + nuova.slice(1);
-    const marks = state.doc.nodeAt(r.from)?.marks ?? [];
-    const tr = state.tr.replaceWith(r.from, r.to, schema.text(nuova, marks));
-    const fine = r.from + nuova.length;
-    tr.setSelection(TextSelection.create(tr.doc, fine))
-      .setMeta(refusiKey, { togli: { from: r.from, to: fine } } satisfies RefusiMeta);
+    const tr = replaceWord(view.state, r.from, r.to, nuova);
+    tr.setMeta(refusiKey, { togli: { from: r.from, to: tr.selection.from } } satisfies RefusiMeta);
     view.dispatch(tr);
     view.focus();
-    flash(`Corretto: ${nuova}`);
+    flash(`Corretto: ${view.state.doc.textBetween(r.from, view.state.selection.from)}`);
   }
 
   function ignora(parola: string): void {

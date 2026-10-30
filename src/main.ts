@@ -12,6 +12,7 @@ import {
 import { schema } from './editor/schema';
 import { gestioneCorrettore } from './correttore';
 import { gestioneFile } from './file';
+import { gestioneSinonimi } from './sinonimi';
 import { DEFAULTS, FONTS, fontByName, loadSettings, saveSettings, type Font, type Settings } from './settings';
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
@@ -35,6 +36,7 @@ const view = createEditor($('#editor'), {
 
 /* ---------- correttore ---------- */
 const spell = gestioneCorrettore({ view, flash });
+const syn = gestioneSinonimi({ view, flash, chiudiAltri: () => spell.chiudi() });
 
 /* ---------- file ---------- */
 const file = gestioneFile({
@@ -106,8 +108,7 @@ $('#chars').addEventListener('mousedown', onToolMousedown);
 $('#spell').addEventListener('mousedown', onToolMousedown);
 
 const nextTypo = () => spell.successivo();
-// Segnaposto: i sinonimi sono la fase 5.
-const synonyms = () => flash('Sinonimi in arrivo');
+const synonyms = () => syn.apri();
 
 /* ---------- impostazioni ---------- */
 function applySettings(): void {

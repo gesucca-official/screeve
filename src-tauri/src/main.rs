@@ -1,11 +1,15 @@
 // Nella build di rilascio niente finestra della console accanto all'app.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod caricato;
 mod correttore;
 mod dati;
 mod docx;
+mod sinonimi;
 
-use correttore::Refuso;
+use caricato::Caricato;
+use correttore::{Correttore, Refuso};
+use sinonimi::{Sinonimi, Voce};
 use std::path::PathBuf;
 use tauri::{Emitter, Manager, State};
 
@@ -30,31 +34,53 @@ fn file_iniziale() -> Option<String> {
 
 /// I refusi di ogni paragrafo; `None` finché il dizionario non è caricato.
 #[tauri::command]
-async fn controlla(testi: Vec<String>, stato: State<'_, correttore::Stato>) -> Result<Option<Vec<Vec<Refuso>>>, String> {
+async fn controlla(testi: Vec<String>, stato: State<'_, Caricato<Correttore>>) -> Result<Option<Vec<Vec<Refuso>>>, String> {
     stato.con(|c| testi.iter().map(|t| c.controlla(t)).collect())
 }
 
 #[tauri::command]
-async fn suggerisci(parola: String, stato: State<'_, correttore::Stato>) -> Result<Vec<String>, String> {
+async fn suggerisci(parola: String, stato: State<'_, Caricato<Correttore>>) -> Result<Vec<String>, String> {
     Ok(stato.con(|c| c.suggerisci(&parola))?.unwrap_or_default())
 }
 
 #[tauri::command]
-async fn aggiungi_parola(parola: String, stato: State<'_, correttore::Stato>) -> Result<(), String> {
+async fn aggiungi_parola(parola: String, stato: State<'_, Caricato<Correttore>>) -> Result<(), String> {
     stato.con_mut(|c| c.aggiungi(&parola))?.unwrap_or(Ok(()))
+}
+
+/// Le voci del thesaurus per la parola; `None` finché non è caricato.
+#[tauri::command]
+async fn sinonimi(parola: String, stato: State<'_, Caricato<Sinonimi>>) -> Result<Option<Vec<Voce>>, String> {
+    stato.con(|s| s.cerca(&parola))
+}
+
+/// Dizionario e thesaurus, in un thread: l'editor è subito utilizzabile. Il
+/// correttore arriva per primo, il thesaurus (più lento da indicizzare) dopo.
+fn carica_dizionari(app: tauri::AppHandle) {
+    let testi = dati::leggi_dizionario("it_IT.aff").and_then(|aff| Ok((aff, dati::leggi_dizionario("it_IT.dic")?)));
+    let (aff, dic) = match testi {
+        Ok(t) => t,
+        Err(e) => {
+            app.state::<Caricato<Correttore>>().imposta(Err(e.clone()));
+            app.state::<Caricato<Sinonimi>>().imposta(Err(e));
+            let _ = app.emit("correttore-pronto", ());
+            return;
+        }
+    };
+    app.state::<Caricato<Correttore>>().imposta(Correttore::carica(&aff, &dic));
+    let _ = app.emit("correttore-pronto", ());
+    let sinonimi = dati::leggi_dizionario("th_it_IT_v2.dat").map(|th| Sinonimi::nuovo(&aff, &dic, th));
+    app.state::<Caricato<Sinonimi>>().imposta(sinonimi);
 }
 
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .manage(correttore::Stato::default())
+        .manage(Caricato::<Correttore>::default())
+        .manage(Caricato::<Sinonimi>::default())
         .setup(|app| {
-            // il dizionario si carica a parte: l'editor è subito utilizzabile
             let app = app.handle().clone();
-            std::thread::spawn(move || {
-                app.state::<correttore::Stato>().imposta(correttore::Correttore::carica());
-                let _ = app.emit("correttore-pronto", ());
-            });
+            std::thread::spawn(move || carica_dizionari(app));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -63,7 +89,8 @@ fn main() {
             file_iniziale,
             controlla,
             suggerisci,
-            aggiungi_parola
+            aggiungi_parola,
+            sinonimi
         ])
         .run(tauri::generate_context!())
         .expect("errore all'avvio di Screeve");

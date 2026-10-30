@@ -1,6 +1,6 @@
 import { setBlockType, toggleMark } from 'prosemirror-commands';
 import type { MarkType } from 'prosemirror-model';
-import { Selection, TextSelection, type Command, type EditorState } from 'prosemirror-state';
+import { Selection, TextSelection, type Command, type EditorState, type Transaction } from 'prosemirror-state';
 import { schema } from './schema';
 
 export type Block = 'h1' | 'h2' | 'p';
@@ -57,3 +57,33 @@ export const wrapGuillemets: Command = (state, dispatch) => {
   dispatch(tr.setSelection(TextSelection.create(tr.doc, from + 1, to + 1)).scrollIntoView());
   return true;
 };
+
+// Sostituisce una parola (refuso corretto, sinonimo): la nuova eredita grassetto,
+// corsivo e maiuscola iniziale, e il cursore va subito dopo.
+export function replaceWord(state: EditorState, from: number, to: number, word: string): Transaction {
+  if (/^\p{Lu}/u.test(state.doc.textBetween(from, to))) word = word.charAt(0).toUpperCase() + word.slice(1);
+  const marks = state.doc.nodeAt(from)?.marks ?? [];
+  const tr = state.tr.replaceWith(from, to, schema.text(word, marks));
+  return tr.setSelection(TextSelection.create(tr.doc, from + word.length));
+}
+
+// La parola selezionata, o quella sotto il cursore. In "dell'acqua" le parole sono
+// due: l'articolo eliso e "acqua".
+export function wordAt(state: EditorState): { from: number; to: number; text: string } | null {
+  const { $from, from, to, empty } = state.selection;
+  if (!$from.parent.isTextblock) return null;
+  const start = $from.start();
+  const text = $from.parent.textContent;
+  const word = /\p{L}+/gu;
+  if (!empty) {
+    const sel = state.doc.textBetween(from, to).trim();
+    const at = state.doc.textBetween(from, to).indexOf(sel);
+    return /^\p{L}+$/u.test(sel) && $from.sameParent(state.selection.$to)
+      ? { from: from + at, to: from + at + sel.length, text: sel } : null;
+  }
+  for (const m of text.matchAll(word)) {
+    const a = start + m.index, b = a + m[0].length;
+    if (a <= from && from <= b) return { from: a, to: b, text: m[0] };
+  }
+  return null;
+}

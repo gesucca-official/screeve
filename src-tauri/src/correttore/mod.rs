@@ -1,8 +1,9 @@
 //! Correttore ortografico: spellbook (compatibile Hunspell) col dizionario it_IT di
 //! LibreOffice, più le regole italiane di `parole.rs` e il dizionario personale.
 //!
-//! Il dizionario si carica in un thread all'avvio; fino ad allora `controlla`
-//! risponde "non ancora pronto" e l'interfaccia aspetta l'evento `correttore-pronto`.
+//! Il dizionario si carica in un thread all'avvio (vedi `caricato.rs`); fino ad
+//! allora `controlla` risponde "non ancora pronto" e l'interfaccia aspetta
+//! l'evento `correttore-pronto`.
 //! I refusi tornano come intervalli: l'editor li disegna come decorazioni, quindi
 //! non entrano mai nel documento.
 
@@ -16,7 +17,6 @@ use std::collections::BTreeSet;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::{OnceLock, RwLock};
 
 use parole::{apostrofo_noto, normalizza, parole, regola, Parola};
 
@@ -43,14 +43,9 @@ impl Correttore {
         Ok(Self { diz, personali: BTreeSet::new(), file_personale: None })
     }
 
-    /// Carica dizionario e dizionario personale dalle loro cartelle.
-    pub fn carica() -> Result<Self, String> {
-        let cartella = crate::dati::cartella_dizionari()
-            .ok_or("Non trovo il dizionario italiano: la cartella «dizionari» deve stare accanto a Screeve")?;
-        let leggi = |nome: &str| {
-            fs::read_to_string(cartella.join(nome)).map_err(|e| format!("Non riesco a leggere il dizionario {nome}: {e}"))
-        };
-        let mut c = Self::nuovo(&leggi("it_IT.aff")?, &leggi("it_IT.dic")?)?;
+    /// Il dizionario, più quello personale dalla cartella dei dati.
+    pub fn carica(aff: &str, dic: &str) -> Result<Self, String> {
+        let mut c = Self::nuovo(aff, dic)?;
         if let Some(file) = crate::dati::cartella_dati().map(|d| d.join("personale.dic")) {
             c.leggi_personale(&file);
             c.file_personale = Some(file);
@@ -144,32 +139,4 @@ fn pezzi(parola: &Parola) -> impl Iterator<Item = Parola> + '_ {
         inizio = fine + 1;
         p
     })
-}
-
-/// Il correttore condiviso dall'app: vuoto finché il dizionario non è caricato,
-/// poi il correttore o il motivo per cui non c'è.
-#[derive(Default)]
-pub struct Stato(OnceLock<Result<RwLock<Correttore>, String>>);
-
-impl Stato {
-    pub fn imposta(&self, c: Result<Correttore, String>) {
-        let _ = self.0.set(c.map(RwLock::new));
-    }
-
-    /// `None` se il dizionario non è ancora pronto.
-    pub fn con<R>(&self, f: impl FnOnce(&Correttore) -> R) -> Result<Option<R>, String> {
-        match self.0.get() {
-            None => Ok(None),
-            Some(Err(e)) => Err(e.clone()),
-            Some(Ok(c)) => Ok(Some(f(&c.read().unwrap_or_else(|e| e.into_inner())))),
-        }
-    }
-
-    pub fn con_mut<R>(&self, f: impl FnOnce(&mut Correttore) -> R) -> Result<Option<R>, String> {
-        match self.0.get() {
-            None => Ok(None),
-            Some(Err(e)) => Err(e.clone()),
-            Some(Ok(c)) => Ok(Some(f(&mut c.write().unwrap_or_else(|e| e.into_inner())))),
-        }
-    }
 }

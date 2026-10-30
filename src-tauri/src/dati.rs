@@ -18,6 +18,13 @@ pub fn cartella_dizionari() -> Option<PathBuf> {
     accanto.into_iter().chain(progetto).find(|c| c.join("it_IT.dic").is_file())
 }
 
+/// Un file della cartella `dizionari/`.
+pub fn leggi_dizionario(nome: &str) -> Result<String, String> {
+    let cartella = cartella_dizionari()
+        .ok_or("Non trovo il dizionario italiano: la cartella «dizionari» deve stare accanto a Screeve")?;
+    fs::read_to_string(cartella.join(nome)).map_err(|e| format!("Non riesco a leggere il file {nome} dei dizionari: {e}"))
+}
+
 /// La cartella dei dati di chi scrive, decisa una volta sola.
 pub fn cartella_dati() -> Option<PathBuf> {
     static CARTELLA: OnceLock<Option<PathBuf>> = OnceLock::new();
