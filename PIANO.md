@@ -143,7 +143,7 @@ Correzioni automatiche mentre scrivi (disattivabili): `<<` → «, `>>` → », 
 1. ✅ **Scheletro** — progetto Tauri 2 + Vite + TS, finestra, tema, font incluso, build portable funzionante.
 2. ✅ **Editor** — schema ProseMirror ristretto, barra con titolo/sottotitolo/testo e G/C, caratteri speciali in colonna sul lato destro, avvolgi in « », correzioni automatiche, conteggio parole, ingrandimento del testo, UI che si ritira, pannello Impostazioni, Guida.
 3. ✅ **DOCX** — Nuovo/Apri/Salva/Salva con nome, scrittura e poi lettura, avviso sui contenuti non supportati, test di round-trip. Provato a mano in Word e Google Documenti. Menu File cliccabile sul nome del file.
-4. **Correttore** — spellbook + it_IT, decorazioni, popover, F7/Alt+Invio, dizionario personale, regole italiane.
+4. ✅ **Correttore** — spellbook + it_IT, decorazioni, popover, F7/Alt+Invio/Alt+2-5, Ignora, dizionario personale, regole italiane. Codice in `src-tauri/src/correttore/` e `src/correttore.ts`, test con `cargo test correttore`. Il dizionario personale sta già accanto all'eseguibile o in `%APPDATA%\Screeve` (`src-tauri/src/dati.rs`).
 5. **Sinonimi** — thesaurus MyThes, popover, lemma dalla forma flessa (MVP), poi sinonimi già flessi.
 6. **Rifinitura** — salvataggio automatico e recupero dopo crash, impostazioni portable, file recenti, icona, firma dell'eseguibile.
 

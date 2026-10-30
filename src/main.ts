@@ -10,6 +10,7 @@ import {
   type Block,
 } from './editor';
 import { schema } from './editor/schema';
+import { gestioneCorrettore } from './correttore';
 import { gestioneFile } from './file';
 import { DEFAULTS, FONTS, fontByName, loadSettings, saveSettings, type Font, type Settings } from './settings';
 
@@ -25,9 +26,15 @@ const view = createEditor($('#editor'), {
   onApply: flash,
   onChange(v) {
     refreshToolbar(v);
-    if (v.state.doc !== lastDoc) { lastDoc = v.state.doc; updateCountSoon(); file.aggiorna(); }
+    const changed = v.state.doc !== lastDoc;
+    if (changed) { lastDoc = v.state.doc; updateCountSoon(); file.aggiorna(); }
+    spell.cambiato(changed);
   },
+  onTypoClick: r => spell.clic(r),
 });
+
+/* ---------- correttore ---------- */
+const spell = gestioneCorrettore({ view, flash });
 
 /* ---------- file ---------- */
 const file = gestioneFile({
@@ -38,6 +45,7 @@ const file = gestioneFile({
     lastDoc = view.state.doc;
     refreshToolbar(view);
     updateCount();
+    spell.ricomincia();
     scrollTo(0, 0);
   },
 });
@@ -97,8 +105,8 @@ $('.tools').addEventListener('mousedown', onToolMousedown);
 $('#chars').addEventListener('mousedown', onToolMousedown);
 $('#spell').addEventListener('mousedown', onToolMousedown);
 
-// Segnaposti: il correttore è la fase 4, i sinonimi la fase 5.
-const nextTypo = () => flash('Correttore ortografico in arrivo');
+const nextTypo = () => spell.successivo();
+// Segnaposto: i sinonimi sono la fase 5.
 const synonyms = () => flash('Sinonimi in arrivo');
 
 /* ---------- impostazioni ---------- */
@@ -197,7 +205,8 @@ document.addEventListener('keydown', e => {
   const ctrl = e.ctrlKey && !e.altKey;
   if (e.key === 'F1') { e.preventDefault(); toggleGuide(); return; }
   if (e.key === 'Escape') {
-    if (fileMenu.classList.contains('open')) toggleFileMenu(false);
+    if (spell.aperto()) spell.chiudi();
+    else if (fileMenu.classList.contains('open')) toggleFileMenu(false);
     else if (guide.classList.contains('open')) toggleGuide(false);
     else if ($('#settings').classList.contains('open')) toggleSettings(false);
     return;
@@ -212,6 +221,13 @@ document.addEventListener('keydown', e => {
     else if (key === 'o') file.apri();
     else if (e.shiftKey) file.salvaConNome();
     else file.salva();
+    return;
+  }
+  // Alt+Invio, Alt+2, Alt+3…: correggi il refuso col primo, secondo, terzo suggerimento
+  const alt = e.altKey && !e.ctrlKey && !e.metaKey;
+  if (alt && (e.key === 'Enter' || /^Digit[2-5]$/.test(e.code))) {
+    e.preventDefault();
+    spell.veloce(e.key === 'Enter' ? 1 : +e.code.slice(5));
     return;
   }
   if (ctrl && e.shiftKey && e.code === 'KeyF') { e.preventDefault(); nextFont(); return; }
@@ -296,4 +312,5 @@ applySettings();
 updateCount();
 refreshToolbar(view);
 file.avvia();
+spell.avvia();
 view.focus();

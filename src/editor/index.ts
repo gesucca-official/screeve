@@ -7,9 +7,11 @@ import { EditorState, Plugin } from 'prosemirror-state';
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { autocorrect, type AutocorrectOptions } from './autocorrect';
 import { setBlock, toggleEm, toggleStrong, wrapGuillemets } from './commands';
+import { refusi, type Intervallo } from './refusi';
 import { schema } from './schema';
 
 export * from './commands';
+export * from './refusi';
 
 // Documento vuoto: un invito, non del testo.
 const placeholder = new Plugin({
@@ -27,6 +29,7 @@ const placeholder = new Plugin({
 
 export interface EditorOptions extends AutocorrectOptions {
   onChange: (view: EditorView) => void;  // documento o selezione cambiati
+  onTypoClick: (r: Intervallo | null) => void;  // clic su un refuso, o altrove nel testo
 }
 
 export function createEditor(mount: HTMLElement, options: EditorOptions): EditorView {
@@ -51,6 +54,7 @@ export function createEditor(mount: HTMLElement, options: EditorOptions): Editor
       }),
       keymap(baseKeymap),
       placeholder,
+      refusi(r => options.onTypoClick(r)),
     ],
   });
 

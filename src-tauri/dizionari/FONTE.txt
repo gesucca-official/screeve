@@ -1,0 +1,7 @@
+Dizionario e thesaurus italiani, copiati senza modifiche da
+https://github.com/LibreOffice/dictionaries/tree/master/it_IT
+(commit b871dff9e73eefc187b2c979803c619ceccaed3a, ottobre 2024).
+
+Licenza: GNU GPL 3 (COPYING-GPL-3.txt). Autori e storia in README_it_IT.txt
+e README_th_it_IT.txt. Sono file separati da Screeve, che li legge ma non li
+incorpora: vedi TERZE-PARTI.md nel repository di Screeve.

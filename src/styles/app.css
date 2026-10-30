@@ -70,8 +70,10 @@ body.typing .bar:hover, body.typing .status:hover, body.typing .chars:hover { op
 .bar .icon { display: grid; place-items: center; padding: 0; }
 .icon svg { width: 20px; height: 20px; }
 .spell-btn { display: inline-flex; align-items: center; gap: 7px; margin-right: 6px; }
-/* senza correttore (fase 4) il pallino resta neutro */
+/* pallino neutro finché il dizionario non è pronto */
 .spell-btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); }
+.spell-btn.typos .dot { background: var(--typo); }
+.spell-btn.clean .dot { background: var(--ok); }
 kbd {
   font: 12px var(--ui); color: var(--ink-faint);
   border: 1px solid var(--line); border-radius: 4px; padding: 0 4px;
@@ -93,6 +95,14 @@ kbd {
 #editor h2 { font-size: 1.15em; font-weight: 400; font-style: italic; color: var(--ink-soft); margin: 0 0 2.2em; }
 #editor p { margin: 0 0 .85em; }
 #editor h2 + h1, #editor p + h1 { margin-top: 2.4em; }
+
+/* refusi: decorazioni, non entrano nel documento */
+#editor .refuso {
+  text-decoration: underline wavy var(--typo);
+  text-decoration-thickness: 1.4px; text-underline-offset: 4px;
+  text-decoration-skip-ink: none; cursor: pointer;
+}
+#editor .refuso-attuale { background: rgba(180, 83, 58, .10); border-radius: 3px; }
 
 /* documento vuoto: un invito, non del testo */
 #editor .empty::before {
@@ -126,6 +136,28 @@ kbd {
   display: flex; flex-direction: column; gap: 1px; padding: 2px;
   background: var(--paper); border-radius: 10px;
 }
+
+/* ---------- suggerimenti dei refusi (e, in fase 5, dei sinonimi) ---------- */
+.pop {
+  position: fixed; z-index: 20; min-width: 280px; display: none; white-space: nowrap;
+  background: var(--paper-raised); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(60, 40, 20, .12), 0 2px 6px rgba(60, 40, 20, .06);
+  padding: 6px; font-size: 14px;
+}
+.pop.open { display: block; }
+.pop .head { padding: 6px 10px 8px; color: var(--ink-faint); white-space: pre; }
+.pop .head s { color: var(--typo); text-decoration-color: rgba(180, 83, 58, .5); }
+.pop button {
+  display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 16px;
+  border: 0; background: none; border-radius: 7px; padding: 7px 10px; cursor: pointer;
+  font: inherit; color: var(--ink); text-align: left;
+}
+.pop button:hover { background: var(--hover); }
+.pop .sugg { font-family: var(--font), serif; font-size: 17px; }
+.pop .sugg:first-of-type { font-weight: 600; }
+.pop .empty { padding: 4px 10px 8px; color: var(--ink-soft); }
+.pop .foot { display: flex; border-top: 1px solid var(--line); margin-top: 4px; padding-top: 4px; }
+.pop .foot button { color: var(--ink-soft); justify-content: center; }
 
 /* ---------- impostazioni (coprono i caratteri quando sono aperte) ---------- */
 .settings {
