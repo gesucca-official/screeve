@@ -11,13 +11,49 @@ body {
 /* ---------- barra superiore ---------- */
 .bar {
   position: fixed; inset: 0 0 auto 0; z-index: 10;
-  display: flex; align-items: center;
-  height: 52px; padding: 0 20px;
-  background: linear-gradient(var(--paper) 72%, transparent);
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: start;
+  padding: 10px 20px 16px;
+  background: linear-gradient(var(--paper) 78%, transparent);
+  transition: opacity .6s ease;
 }
+.status, .chars { transition: opacity .6s ease; }
+/* mentre si scrive l'interfaccia si ritira; torna muovendo il mouse */
+body.typing .bar, body.typing .status, body.typing .chars { opacity: .12; }
+body.typing .bar:hover, body.typing .status:hover, body.typing .chars:hover { opacity: 1; }
+
 .file {
-  font-size: 13px; color: var(--ink-soft);
+  font-size: 14px; line-height: 36px; color: var(--ink-soft);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.tools { display: grid; justify-items: center; gap: 2px; }
+.row { display: flex; align-items: center; gap: 2px; }
+.sep { width: 1px; height: 18px; background: var(--line); margin: 0 8px; }
+
+.bar button, .chars button {
+  font: inherit; font-size: 14.5px; color: var(--ink-soft);
+  background: none; border: 0; border-radius: 7px;
+  height: 36px; min-width: 36px; padding: 0 10px; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.bar button:hover, .chars button:hover { background: var(--hover); color: var(--ink); }
+.bar button.on { background: var(--on); color: var(--ink); }
+.glyph { font-family: var(--font), serif; font-size: 19.5px; }
+.bar .glyph, .chars .glyph { padding: 0 7px; }
+.chars button { min-width: 40px; height: 38px; }
+.chars .glyph { font-size: 23px; }
+.tools .b { font-weight: 700; }
+.tools .i { font-style: italic; }
+
+.right { justify-self: end; display: flex; align-items: center; gap: 2px; }
+.bar .icon { display: grid; place-items: center; padding: 0; }
+.icon svg { width: 20px; height: 20px; }
+.spell-btn { display: inline-flex; align-items: center; gap: 7px; margin-right: 6px; }
+/* senza correttore (fase 4) il pallino resta neutro */
+.spell-btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-faint); }
+kbd {
+  font: 12px var(--ui); color: var(--ink-faint);
+  border: 1px solid var(--line); border-radius: 4px; padding: 0 4px;
 }
 
 /* ---------- pagina ---------- */
@@ -29,24 +65,117 @@ body {
   font-optical-sizing: auto;
   line-height: var(--leading);
   font-variant-ligatures: common-ligatures;
+  transition: max-width .3s ease;
 }
 #editor { outline: none; caret-color: var(--accent); user-select: text; }
 #editor h1 { font-size: 1.85em; font-weight: 600; line-height: 1.2; margin: 0 0 .25em; letter-spacing: -.005em; }
 #editor h2 { font-size: 1.15em; font-weight: 400; font-style: italic; color: var(--ink-soft); margin: 0 0 2.2em; }
 #editor p { margin: 0 0 .85em; }
-#editor h1 + p { margin-top: 1.4em; }
+#editor h2 + h1, #editor p + h1 { margin-top: 2.4em; }
 
 /* documento vuoto: un invito, non del testo */
-#editor > p:only-child:has(> br:only-child)::before {
-  content: "Comincia a scrivere…";
+#editor .empty::before {
+  content: attr(data-placeholder);
   position: absolute; pointer-events: none;
   color: var(--ink-faint); font-style: italic;
 }
 
+/* riga di prova per i caratteri per riga: fixed, così non allarga la pagina */
+.ruler { position: fixed; top: 0; left: 0; visibility: hidden; white-space: pre; pointer-events: none; }
+
 /* ---------- barra di stato ---------- */
 .status {
-  position: fixed; inset: auto 0 0 0; height: 40px;
+  position: fixed; inset: auto 0 0 0; height: 44px;
   display: flex; align-items: center; justify-content: center; gap: 14px;
-  font-size: 12px; color: var(--ink-faint);
+  font-size: 13px; color: var(--ink-faint);
   background: linear-gradient(transparent, var(--paper) 45%);
+}
+.status .msg { color: var(--ok); }
+.zoom { display: inline-flex; align-items: center; }
+.zoom button {
+  border: 0; background: none; color: var(--ink-faint); font: inherit;
+  height: 28px; min-width: 28px; padding: 0 4px; border-radius: 6px; cursor: pointer;
+}
+.zoom button:hover { background: var(--hover); color: var(--ink); }
+#zoom-out, #zoom-in { font-size: 17px; }
+
+/* ---------- caratteri, in basso a destra ---------- */
+.chars {
+  position: fixed; right: 16px; bottom: 68px; z-index: 12;
+  display: flex; flex-direction: column; gap: 1px; padding: 2px;
+  background: var(--paper); border-radius: 10px;
+}
+
+/* ---------- impostazioni (coprono i caratteri quando sono aperte) ---------- */
+.settings {
+  position: fixed; right: 18px; top: 72px; bottom: 12px; z-index: 15; width: 300px;
+  display: none; overflow-y: auto;
+  background: var(--paper-raised); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(60, 40, 20, .08);
+  padding: 14px 14px 18px; font-size: 13px; color: var(--ink-soft);
+}
+.settings.open { display: block; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.sheet-head b { color: var(--ink); font-size: 15px; font-weight: 600; }
+.x {
+  border: 0; background: none; color: var(--ink-faint); font: 20px/1 var(--ui);
+  width: 28px; height: 28px; border-radius: 7px; cursor: pointer;
+}
+.x:hover { background: var(--hover); color: var(--ink); }
+.settings h4 { margin: 16px 2px 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); }
+.fonts { display: grid; gap: 2px; }
+.fonts button {
+  border: 0; background: none; text-align: left; padding: 6px 8px; border-radius: 7px; cursor: pointer; color: var(--ink);
+}
+.fonts button span { display: block; font-size: 17px; line-height: 1.25; }
+.fonts button small { font: 12px var(--ui); color: var(--ink-faint); }
+.fonts button:hover { background: var(--hover); }
+.fonts button.on { background: var(--on); }
+.settings label { display: flex; justify-content: space-between; margin: 10px 2px 2px; }
+.settings input[type=range] { width: 100%; accent-color: var(--accent); }
+.settings label.check { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: start; cursor: pointer; color: var(--ink); }
+.settings label.check input { margin: 2px 0 0; accent-color: var(--accent); }
+.settings label.check small { grid-column: 2; color: var(--ink-faint); }
+.reset {
+  margin-top: 18px; width: 100%; height: 36px; border: 1px solid var(--line); border-radius: 8px;
+  background: none; color: var(--ink-soft); font: inherit; cursor: pointer;
+}
+.reset:hover { background: var(--hover); color: var(--ink); }
+
+/* col pannello aperto il testo si sposta di lato, così ogni modifica si vede subito */
+@media (max-width: 1400px) { body:has(.settings.open) .page { margin-left: 24px; margin-right: 320px; } }
+@media (min-width: 1000px) and (max-width: 1400px) { body:has(.settings.open) .page { margin-left: auto; margin-right: max(320px, calc((100vw - var(--measure)) / 2)); } }
+
+/* ---------- guida ---------- */
+.guide {
+  position: fixed; inset: 0; z-index: 30; display: none; overflow-y: auto; outline: none;
+  background: rgba(244, 237, 222, .82); backdrop-filter: blur(4px);
+  padding: 7vh 16px;
+}
+.guide.open { display: block; }
+.guide-card {
+  position: relative; max-width: 680px; margin: 0 auto;
+  background: var(--paper-raised); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(60, 40, 20, .12);
+  padding: 36px 44px 40px; font-size: 15px; line-height: 1.6; color: var(--ink);
+}
+.guide-card .x { position: absolute; top: 14px; right: 14px; }
+.guide-card h2 { font: 600 26px/1.2 var(--font), serif; margin: 0 0 4px; }
+.guide-card h3 { font: 600 17px/1.3 var(--font), serif; margin: 28px 0 6px; }
+.guide-card p, .guide-card ul { margin: 0 0 10px; color: var(--ink-soft); }
+.guide-card ul { padding-left: 18px; }
+.guide-card li { margin-bottom: 3px; }
+.guide-card b { color: var(--ink); font-weight: 600; }
+.guide-card .lead { font: italic 16px/1.5 var(--font), serif; color: var(--ink-soft); margin-bottom: 8px; }
+.guide-card table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+.guide-card td { padding: 6px 4px; border-bottom: 1px solid var(--line); color: var(--ink-soft); vertical-align: top; }
+.guide-card td:last-child { text-align: right; white-space: nowrap; }
+.guide-card tr.group td { color: var(--ink-faint); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; padding-top: 16px; }
+.guide-card kbd { font-size: 13px; color: var(--ink-soft); background: var(--paper); padding: 1px 6px; }
+.guide-card .g { font-family: var(--font), serif; font-size: 17px; color: var(--ink); }
+
+@media (max-width: 900px) {
+  .file { display: none; }
+  .bar { grid-template-columns: auto 1fr; }
+  .guide-card { padding: 28px 22px 30px; }
 }

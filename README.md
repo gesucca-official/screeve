@@ -10,7 +10,9 @@ Editor di testo per la scrittura creativa in italiano: senza distrazioni, piacev
 
 ## Stato
 
-In progettazione. Il mockup interattivo è in [`mockup/index.html`](mockup/index.html) (si apre direttamente nel browser), il piano di implementazione in [`PIANO.md`](PIANO.md).
+In sviluppo. Già pronto l'editor (fase 2): titolo, sottotitolo, grassetto e corsivo, caratteri italiani e correzioni automatiche, zoom, impostazioni con cinque font inclusi e guida (F1). Mancano ancora apertura e salvataggio dei `.docx`, correttore e sinonimi.
+
+Il mockup interattivo è in [`mockup/index.html`](mockup/index.html) (si apre direttamente nel browser), il piano di implementazione in [`PIANO.md`](PIANO.md).
 
 Stack: Tauri 2, TypeScript, ProseMirror, Rust.
 
@@ -25,3 +27,5 @@ npm run app:build    # eseguibile portable in src-tauri/target/release/screeve.e
 ```
 
 `npm run dev` avvia solo l'interfaccia nel browser, su http://localhost:1420.
+
+I font vengono dai pacchetti Fontsource; dopo averli aggiornati, `node scripts/genera-font.mjs` rigenera `src/styles/fonts.css`.

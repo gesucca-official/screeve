@@ -17,7 +17,19 @@
     "vite": "^8.3.5"
   },
   "dependencies": {
+    "@fontsource-variable/libre-baskerville": "^5.3.0",
     "@fontsource-variable/literata": "^5.3.0",
-    "@tauri-apps/api": "^2.12.4"
+    "@fontsource/atkinson-hyperlegible": "^5.3.0",
+    "@fontsource/courier-prime": "^5.3.0",
+    "@fontsource/zilla-slab": "^5.3.0",
+    "@tauri-apps/api": "^2.12.4",
+    "prosemirror-commands": "^1.7.2",
+    "prosemirror-history": "^1.5.1",
+    "prosemirror-inputrules": "^1.5.1",
+    "prosemirror-keymap": "^1.2.3",
+    "prosemirror-model": "^1.25.12",
+    "prosemirror-state": "^1.4.4",
+    "prosemirror-transform": "^1.12.4",
+    "prosemirror-view": "^1.42.8"
   }
 }

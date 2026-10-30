@@ -6,20 +6,142 @@
   <title>Screeve</title>
 </head>
 <body>
-  <header class="bar">
-    <div class="file" id="file-name">Senza titolo</div>
-  </header>
 
-  <main class="page">
-    <article id="editor" contenteditable="true" spellcheck="false">
-      <p><br></p>
-    </article>
-  </main>
+<header class="bar">
+  <div class="file" id="file-name">Senza titolo</div>
 
-  <footer class="status">
-    <span id="count"></span>
-  </footer>
+  <nav class="tools" aria-label="Formattazione">
+    <div class="row">
+      <button data-block="h1" title="Titolo (Ctrl+Alt+1)">Titolo</button>
+      <button data-block="h2" title="Sottotitolo (Ctrl+Alt+2)">Sottotitolo</button>
+      <button data-block="p"  title="Testo (Ctrl+Alt+0)">Testo</button>
+      <span class="sep"></span>
+      <button class="glyph b" data-mark="strong" title="Grassetto (Ctrl+B)">G</button>
+      <button class="glyph i" data-mark="em"     title="Corsivo (Ctrl+I)">C</button>
+      <span class="sep"></span>
+      <button id="b-syn" title="Sinonimi della parola selezionata (Maiusc+F7)">Sinonimi</button>
+    </div>
+  </nav>
 
-  <script type="module" src="/src/main.ts"></script>
+  <div class="right">
+    <button class="spell-btn" id="spell" title="Vai al prossimo refuso (F7)">
+      <span class="dot"></span><span id="spell-label">refusi</span><kbd>F7</kbd>
+    </button>
+    <button class="icon" id="b-settings" title="Impostazioni (Ctrl+,)" aria-label="Impostazioni">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+    </button>
+    <button class="icon" id="b-guide" title="Guida (F1)" aria-label="Guida">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r=".7" fill="currentColor"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="page">
+  <article id="editor" spellcheck="false"></article>
+  <!-- riga di prova, invisibile, per misurare i caratteri per riga -->
+  <span class="ruler" id="ruler" aria-hidden="true"></span>
+</main>
+
+<footer class="status">
+  <span id="count"></span>
+  <span class="zoom">
+    <button id="zoom-out" title="Rimpicciolisci il testo (Ctrl+−)">−</button>
+    <button id="zoom-val" title="Dimensione normale (Ctrl+0)">100%</button>
+    <button id="zoom-in" title="Ingrandisci il testo (Ctrl++)">+</button>
+  </span>
+  <span class="msg" id="msg"></span>
+</footer>
+
+<nav class="chars" id="chars" aria-label="Caratteri">
+  <button class="glyph" data-char="È" title="È maiuscola — oppure scrivi E' seguito da spazio">È</button>
+  <button class="glyph" data-char="«" title="Caporale aperta — oppure scrivi &lt;&lt;">«</button>
+  <button class="glyph" data-char="»" title="Caporale chiusa — oppure scrivi &gt;&gt;">»</button>
+  <button class="glyph" data-char="‹" title="Caporale singola aperta">‹</button>
+  <button class="glyph" data-char="›" title="Caporale singola chiusa">›</button>
+  <button class="glyph" id="b-wrap" title="Racchiudi la selezione tra caporali (Ctrl+Maiusc+')">«…»</button>
+</nav>
+
+<aside class="settings" id="settings" aria-label="Impostazioni">
+  <div class="sheet-head"><b>Impostazioni</b><button class="x" id="settings-close" aria-label="Chiudi">×</button></div>
+  <h4>Font</h4>
+  <div class="fonts" id="fonts"></div>
+  <h4>Testo</h4>
+  <label for="size">Dimensione <span id="size-val"></span></label>
+  <input type="range" id="size" min="15" max="26" step="0.5">
+  <label for="measure">Larghezza colonna <span id="cpl"></span></label>
+  <input type="range" id="measure" min="26" max="42" step="0.5">
+  <h4>Scrittura</h4>
+  <label class="check"><input type="checkbox" id="auto"> Correzioni automatiche <small>&lt;&lt; → « &nbsp;·&nbsp; &gt;&gt; → » &nbsp;·&nbsp; E' → È</small></label>
+  <button class="reset" id="reset">Ripristina predefiniti</button>
+</aside>
+
+<div class="guide" id="guide" role="dialog" aria-modal="true" aria-label="Guida">
+  <div class="guide-card">
+    <button class="x" id="guide-close" aria-label="Chiudi">×</button>
+    <h2>Guida a Screeve</h2>
+    <p class="lead">Un foglio, una penna, e niente altro. Screeve è fatto per scrivere in italiano senza distrazioni.</p>
+
+    <h3>Scrivere senza distrazioni</h3>
+    <p>Mentre scrivi, le barre in alto e in basso si ritirano quasi del tutto. Basta muovere il mouse per farle tornare.</p>
+    <p>La colonna di testo ha sempre la stessa larghezza, circa 65 caratteri per riga: è la misura più riposante per l'occhio. Allargando la finestra crescono i margini, non le righe.</p>
+
+    <h3>Struttura del testo</h3>
+    <ul>
+      <li><b>Titolo</b> per i capitoli, <b>Sottotitolo</b> per ciò che sta sotto, <b>Testo</b> per tutto il resto. Ripremi Titolo o Sottotitolo per tornare a Testo.</li>
+      <li><b>G</b> e <b>C</b> applicano grassetto e corsivo.</li>
+      <li>In Word e Google Documenti i titoli diventano <i>Titolo 1</i> e <i>Titolo 2</i>: compaiono nella struttura del documento e negli indici automatici.</li>
+    </ul>
+
+    <h3>Caratteri italiani</h3>
+    <p>I pulsanti sul lato destro inseriscono i caratteri scomodi da trovare sulla tastiera: <span class="g">È « » ‹ ›</span>. Il pulsante <span class="g">«…»</span> racchiude tra caporali il testo selezionato.</p>
+    <p>Con le <b>correzioni automatiche</b> attive puoi anche scrivere <kbd>&lt;&lt;</kbd> per <span class="g">«</span>, <kbd>&gt;&gt;</kbd> per <span class="g">»</span> ed <kbd>E'</kbd> seguito da spazio per <span class="g">È</span>. Si disattivano dalle impostazioni.</p>
+
+    <h3>Refusi</h3>
+    <ul>
+      <li>Le parole sconosciute sono sottolineate da un'onda color terracotta. In alto a destra vedi quante sono.</li>
+      <li><kbd>F7</kbd> porta al refuso successivo e mostra i suggerimenti.</li>
+      <li><kbd>Alt</kbd>+<kbd>Invio</kbd> applica il primo suggerimento al refuso sotto il cursore, o a quello appena scritto: puoi correggere senza staccare le mani dalla tastiera.</li>
+      <li><b>Ignora</b> lascia la parola com'è; <b>Aggiungi al dizionario</b> la ricorda per sempre, utile per nomi di personaggi e luoghi inventati.</li>
+    </ul>
+
+    <h3>Sinonimi</h3>
+    <p>Seleziona una parola, o mettici sopra il cursore, e premi <kbd>Maiusc</kbd>+<kbd>F7</kbd> o il pulsante <b>Sinonimi</b>. Scegli con le frecce e conferma con <kbd>Invio</kbd>. La parola nuova eredita maiuscola, corsivo e grassetto.</p>
+
+    <h3>Dimensione del testo</h3>
+    <p>Con <kbd>Ctrl</kbd>+<kbd>+</kbd> e <kbd>Ctrl</kbd>+<kbd>−</kbd> ingrandisci o rimpicciolisci tutto il testo, per esempio quando lo schermo è lontano. <kbd>Ctrl</kbd>+<kbd>0</kbd> torna al 100%. Lo zoom riguarda solo lo schermo: il documento non cambia.</p>
+
+    <h3>Impostazioni</h3>
+    <p>Il pulsante con i cursori, in alto a destra, apre le impostazioni: font, dimensione di base, larghezza della colonna e correzioni automatiche. <b>Ripristina predefiniti</b> riporta tutto com'era.</p>
+    <p>Per cambiare aria mentre scrivi, <kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>F</kbd> passa al font successivo senza aprire le impostazioni.</p>
+
+    <h3>File</h3>
+    <p>Screeve apre e salva file <b>.docx</b>, che si aprono identici in Word e Google Documenti. Se apri un documento con elementi che Screeve non gestisce, come tabelle o immagini, ti avvisa prima e ti propone di salvare una copia, così l'originale resta intatto.</p>
+
+    <h3>Scorciatoie</h3>
+    <table>
+      <tr class="group"><td colspan="2">File</td></tr>
+      <tr><td>Nuovo · Apri · Salva</td><td><kbd>Ctrl</kbd>+<kbd>N</kbd> · <kbd>Ctrl</kbd>+<kbd>O</kbd> · <kbd>Ctrl</kbd>+<kbd>S</kbd></td></tr>
+      <tr><td>Salva con nome</td><td><kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>S</kbd></td></tr>
+      <tr class="group"><td colspan="2">Formattazione</td></tr>
+      <tr><td>Grassetto · Corsivo</td><td><kbd>Ctrl</kbd>+<kbd>B</kbd> · <kbd>Ctrl</kbd>+<kbd>I</kbd></td></tr>
+      <tr><td>Titolo · Sottotitolo · Testo</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>1</kbd> · <kbd>2</kbd> · <kbd>0</kbd></td></tr>
+      <tr><td>Racchiudi la selezione in « »</td><td><kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>'</kbd></td></tr>
+      <tr><td>Annulla · Ripeti</td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> · <kbd>Ctrl</kbd>+<kbd>Y</kbd></td></tr>
+      <tr class="group"><td colspan="2">Revisione</td></tr>
+      <tr><td>Prossimo refuso</td><td><kbd>F7</kbd></td></tr>
+      <tr><td>Correggi il refuso</td><td><kbd>Alt</kbd>+<kbd>Invio</kbd></td></tr>
+      <tr><td>Scegli il 2° o 3° suggerimento</td><td><kbd>Alt</kbd>+<kbd>2</kbd> · <kbd>Alt</kbd>+<kbd>3</kbd></td></tr>
+      <tr><td>Sinonimi</td><td><kbd>Maiusc</kbd>+<kbd>F7</kbd></td></tr>
+      <tr class="group"><td colspan="2">Vista</td></tr>
+      <tr><td>Ingrandisci · Rimpicciolisci · 100%</td><td><kbd>Ctrl</kbd>+<kbd>+</kbd> · <kbd>Ctrl</kbd>+<kbd>−</kbd> · <kbd>Ctrl</kbd>+<kbd>0</kbd></td></tr>
+      <tr><td>Font successivo</td><td><kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>F</kbd></td></tr>
+      <tr><td>Impostazioni</td><td><kbd>Ctrl</kbd>+<kbd>,</kbd></td></tr>
+      <tr><td>Guida</td><td><kbd>F1</kbd></td></tr>
+      <tr><td>Chiudi finestre e suggerimenti</td><td><kbd>Esc</kbd></td></tr>
+    </table>
+  </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
 </body>
 </html>

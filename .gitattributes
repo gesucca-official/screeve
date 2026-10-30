@@ -1,0 +1,8 @@
+# A capo LF ovunque, anche su Windows: niente più avvisi LF/CRLF.
+* text=auto eol=lf
+
+# Binari
+*.png binary
+*.ico binary
+*.icns binary
+*.woff2 binary

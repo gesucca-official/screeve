@@ -19,7 +19,7 @@ Mockup interattivo: [mockup/index.html](mockup/index.html).
 | Editor | **ProseMirror** | Modello documento rigoroso: lo schema ammette *solo* ciò che il docx sa rappresentare (titolo, sottotitolo, paragrafo, grassetto, corsivo), quindi nessuna formattazione "orfana" può nascere. Undo/redo, input rules e decorazioni (per i refusi) già pronti. `contenteditable` puro (come nel mockup) non è affidabile per un editor vero. |
 | Correttore | **spellbook** (crate Rust, compatibile Hunspell) + dizionario **it_IT** di LibreOffice | Veloce e nativo. In JS (nspell) il dizionario italiano è notoriamente lento e pesante in memoria. |
 | DOCX | Scrittura e lettura **in Rust** con `zip` + `quick-xml`, OOXML generato a mano | Lo schema è minuscolo: generare noi l'XML ci dà il controllo totale su ciò che finisce nel file, quindi la compatibilità è garantita e testabile. |
-| Font | File WOFF2/TTF **inclusi** nell'eseguibile (licenza OFL) | Niente rete, aspetto identico ovunque. |
+| Font | File WOFF2 **inclusi** nell'eseguibile (licenza OFL), dai pacchetti **Fontsource** | Niente rete, aspetto identico ovunque. Solo i sottoinsiemi latin e latin-ext (`scripts/genera-font.mjs` → `src/styles/fonts.css`). |
 
 Alternative scartate: Electron (troppo pesante), Wails/Go (valido, ma l'ecosistema Rust ha già spellbook e Tauri è più maturo), Neutralino (API native troppo limitate).
 
@@ -64,23 +64,20 @@ File minimo e valido: `[Content_Types].xml`, `_rels/.rels`, `word/document.xml`,
 
 ## Interfaccia
 
-- **Barra in alto, su due righe:** sopra Titolo · Sottotitolo · Testo | G · C | Sinonimi; sotto i caratteri È « » ‹ › «…». A sinistra il nome del file, a destra il contatore dei refusi e due icone: **Impostazioni** e **Guida**.
+- **Barra in alto:** Titolo · Sottotitolo · Testo | G · C | Sinonimi. A sinistra il nome del file, a destra il contatore dei refusi e due icone: **Impostazioni** e **Guida**.
 - **Barra in basso:** parole, caratteri, tempo di lettura e lo zoom `− 100% +`.
-- Mentre si scrive, entrambe le barre si ritirano quasi del tutto.
+- **Caratteri, colonna verticale sul lato destro, nella parte bassa:** È « » ‹ › «…». Quando il pannello Impostazioni è aperto restano coperti.
+- Mentre si scrive, barre e caratteri si ritirano quasi del tutto.
 
 ## Impostazioni
 
 Pannello laterale che si apre dall'icona con i cursori (o **Ctrl+,**). Il testo si sposta di lato per restare visibile, così ogni modifica si vede subito.
-- **Font**, divisi in due gruppi:
-  - *Raffinati:* Literata (predefinito), Source Serif 4, Newsreader, Lora, EB Garamond, Crimson Pro.
-  - *Corposi:* Merriweather, Vollkorn, Bitter, Alegreya.
-  
-  Ogni font ha il suo corpo ideale, applicato quando lo si sceglie; poi si può regolare.
+- **Font**, cinque, tutti a tratto pieno (niente filetti sottili): due classici, Literata (predefinito) e Libre Baskerville, e tre voci diverse per cambiare aria mentre si scrive: Zilla Slab (graziato squadrato), Atkinson Hyperlegible (senza grazie) e Courier Prime (macchina da scrivere; essendo monospaziato, a parità di colonna sta su ~55 caratteri per riga). **Ctrl+Maiusc+F** passa al font successivo senza aprire le impostazioni. Ogni font ha il suo corpo ideale, applicato quando lo si sceglie; poi si può regolare.
 - **Dimensione** di base (predefinita 19 px) e **larghezza della colonna** (predefinita ~65 caratteri per riga), con l'indicazione dei caratteri per riga effettivi.
 - **Correzioni automatiche** attivabili e disattivabili.
 - **Ripristina predefiniti.**
 
-Le impostazioni si salvano in `screeve.json` (vedi Portabilità). I 10 font, ognuno in 4 stili, aggiungono qualche MB all'eseguibile.
+Le impostazioni si salvano in `screeve.json` (vedi Portabilità); fino alla fase 6 restano nel `localStorage` della WebView. I 5 font, ognuno in 4 stili (latin e latin-ext, woff2), aggiungono circa 1 MB all'eseguibile.
 
 ## Guida
 
@@ -114,6 +111,7 @@ Icona "i" in alto a destra (o **F1**): finestra sovrapposta, scorrevole, chiusa 
 | Scegli il 2°/3° suggerimento | Alt+2 / Alt+3 |
 | Sinonimi della parola | Maiusc+F7 |
 | Ingrandisci / Rimpicciolisci / 100% | Ctrl++ / Ctrl+− / Ctrl+0 |
+| Font successivo | Ctrl+Maiusc+F |
 | Impostazioni | Ctrl+, |
 | Guida | F1 |
 | Chiudi pannelli e suggerimenti | Esc |
@@ -130,8 +128,8 @@ Correzioni automatiche mentre scrivi (disattivabili): `<<` → «, `>>` → », 
 
 ## Fasi
 
-1. **Scheletro** — progetto Tauri 2 + Vite + TS, finestra, tema, font incluso, build portable funzionante.
-2. **Editor** — schema ProseMirror ristretto, barra su due righe con titolo/sottotitolo/testo, G/C, caratteri speciali, avvolgi in « », correzioni automatiche, conteggio parole, ingrandimento del testo, UI che si ritira, pannello Impostazioni, Guida.
+1. ✅ **Scheletro** — progetto Tauri 2 + Vite + TS, finestra, tema, font incluso, build portable funzionante.
+2. ✅ **Editor** — schema ProseMirror ristretto, barra con titolo/sottotitolo/testo e G/C, caratteri speciali in colonna sul lato destro, avvolgi in « », correzioni automatiche, conteggio parole, ingrandimento del testo, UI che si ritira, pannello Impostazioni, Guida.
 3. **DOCX** — Nuovo/Apri/Salva/Salva con nome, scrittura e poi lettura, avviso sui contenuti non supportati, test di round-trip e prova manuale in Word e Google Documenti.
 4. **Correttore** — spellbook + it_IT, decorazioni, popover, F7/Alt+Invio, dizionario personale, regole italiane.
 5. **Sinonimi** — thesaurus MyThes, popover, lemma dalla forma flessa (MVP), poi sinonimi già flessi.

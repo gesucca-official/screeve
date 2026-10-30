@@ -6,7 +6,7 @@
 <title>Screeve — mockup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400;1,7..72,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400;1,8..60,600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400;1,6..72,600&family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400;1,600&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Vollkorn:ital,wght@0,400;0,600;1,400;1,600&family=Bitter:ital,wght@0,400;0,600;1,400;1,600&family=Alegreya:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400;1,7..72,600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Zilla+Slab:ital,wght@0,400;0,600;1,400;1,600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 <style>
   :root {
     --paper: #F4EDDE;
@@ -41,38 +41,40 @@
     background: linear-gradient(var(--paper) 78%, transparent);
     transition: opacity .6s ease;
   }
-  .status { transition: opacity .6s ease; }
-  body.typing .bar, body.typing .status { opacity: .12; }
-  body.typing .bar:hover, body.typing .status:hover { opacity: 1; }
+  .status, .chars { transition: opacity .6s ease; }
+  body.typing .bar, body.typing .status, body.typing .chars { opacity: .12; }
+  body.typing .bar:hover, body.typing .status:hover, body.typing .chars:hover { opacity: 1; }
 
-  .file { font-size: 13px; line-height: 32px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file { font-size: 14px; line-height: 36px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .file small { color: var(--ink-faint); margin-left: 6px; }
 
   .tools { display: grid; justify-items: center; gap: 2px; }
   .row { display: flex; align-items: center; gap: 2px; }
   .sep { width: 1px; height: 18px; background: var(--line); margin: 0 8px; }
 
-  .bar button {
-    font: inherit; font-size: 13px; color: var(--ink-soft);
+  .bar button, .chars button {
+    font: inherit; font-size: 14.5px; color: var(--ink-soft);
     background: none; border: 0; border-radius: 7px;
-    height: 32px; min-width: 32px; padding: 0 9px; cursor: pointer;
+    height: 36px; min-width: 36px; padding: 0 10px; cursor: pointer;
     transition: background .15s, color .15s;
   }
-  .bar button:hover { background: var(--hover); color: var(--ink); }
+  .bar button:hover, .chars button:hover { background: var(--hover); color: var(--ink); }
   .bar button.on { background: var(--on); color: var(--ink); }
-  .tools .glyph { font-family: var(--font), serif; font-size: 17px; padding: 0 7px; }
-  .tools .chars button { height: 28px; min-width: 34px; }
+  .glyph { font-family: var(--font), serif; font-size: 19.5px; }
+  .bar .glyph, .chars .glyph { padding: 0 7px; }
+  .chars button { min-width: 40px; height: 38px; }
+  .chars .glyph { font-size: 23px; }
   .tools .b { font-weight: 700; }
   .tools .i { font-style: italic; }
 
   .right { justify-self: end; display: flex; align-items: center; gap: 2px; }
   .bar .icon { display: grid; place-items: center; padding: 0; }
-  .icon svg { width: 18px; height: 18px; }
+  .icon svg { width: 20px; height: 20px; }
   .spell-btn { display: inline-flex; align-items: center; gap: 7px; margin-right: 6px; }
   .spell-btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--typo); }
   .spell-btn.clean .dot { background: #7D8F5E; }
   kbd {
-    font: 11px var(--ui); color: var(--ink-faint);
+    font: 12px var(--ui); color: var(--ink-faint);
     border: 1px solid var(--line); border-radius: 4px; padding: 0 4px;
   }
 
@@ -104,7 +106,7 @@
     position: fixed; z-index: 20; min-width: 280px; display: none; white-space: nowrap;
     background: var(--paper-raised); border: 1px solid var(--line); border-radius: 12px;
     box-shadow: 0 10px 30px rgba(60, 40, 20, .12), 0 2px 6px rgba(60, 40, 20, .06);
-    padding: 6px; font-size: 13px;
+    padding: 6px; font-size: 14px;
   }
   .pop.open { display: block; }
   .pop .head { padding: 6px 10px 8px; color: var(--ink-faint); }
@@ -115,7 +117,7 @@
     font: inherit; color: var(--ink); text-align: left;
   }
   .pop button:hover { background: var(--hover); }
-  .pop .sugg { font-family: var(--font), serif; font-size: 16px; }
+  .pop .sugg { font-family: var(--font), serif; font-size: 17px; }
   .pop .sugg:first-of-type { font-weight: 600; }
   .pop .foot { display: flex; border-top: 1px solid var(--line); margin-top: 4px; padding-top: 4px; }
   .pop .foot button { color: var(--ink-soft); justify-content: center; }
@@ -123,57 +125,63 @@
   .pop.syn { white-space: normal; width: 340px; padding: 6px 6px 8px; }
   .pop.syn .head b { color: var(--ink); font-weight: 600; }
   .pop .group { padding: 4px 10px 6px; }
-  .pop .label { font-size: 11px; color: var(--ink-faint); margin-bottom: 4px; }
+  .pop .label { font-size: 12px; color: var(--ink-faint); margin-bottom: 4px; }
   .pop .chips { display: flex; flex-wrap: wrap; gap: 4px; }
   .pop button.chip {
     display: inline-block; width: auto; padding: 3px 9px; border-radius: 999px;
-    border: 1px solid var(--line); font-family: var(--font), serif; font-size: 15px;
+    border: 1px solid var(--line); font-family: var(--font), serif; font-size: 16px;
   }
   .pop button.chip:focus { outline: none; background: var(--on); border-color: rgba(90, 60, 40, .3); }
   .pop .empty { padding: 4px 10px 8px; color: var(--ink-soft); }
   .pop .empty small { color: var(--ink-faint); }
-  .pop .hint { border-top: 1px solid var(--line); margin-top: 6px; padding: 7px 10px 0; color: var(--ink-faint); font-size: 11px; }
+  .pop .hint { border-top: 1px solid var(--line); margin-top: 6px; padding: 7px 10px 0; color: var(--ink-faint); font-size: 12px; }
 
   /* ---------- barra di stato ---------- */
   .status {
-    position: fixed; inset: auto 0 0 0; height: 40px;
+    position: fixed; inset: auto 0 0 0; height: 44px;
     display: flex; align-items: center; justify-content: center; gap: 14px;
-    font-size: 12px; color: var(--ink-faint);
+    font-size: 13px; color: var(--ink-faint);
     background: linear-gradient(transparent, var(--paper) 45%);
   }
   .status .msg { color: #6E7F50; }
   .zoom { display: inline-flex; align-items: center; }
   .zoom button {
     border: 0; background: none; color: var(--ink-faint); font: inherit;
-    height: 24px; min-width: 24px; padding: 0 4px; border-radius: 6px; cursor: pointer;
+    height: 28px; min-width: 28px; padding: 0 4px; border-radius: 6px; cursor: pointer;
   }
   .zoom button:hover { background: var(--hover); color: var(--ink); }
-  #zoom-out, #zoom-in { font-size: 15px; }
+  #zoom-out, #zoom-in { font-size: 17px; }
 
-  /* ---------- impostazioni ---------- */
+  /* ---------- caratteri, in basso a destra ---------- */
+  .chars {
+    position: fixed; right: 16px; bottom: 68px; z-index: 12;
+    display: flex; flex-direction: column; gap: 1px; padding: 2px;
+    background: var(--paper); border-radius: 10px;
+  }
+
+  /* ---------- impostazioni (coprono i caratteri quando sono aperte) ---------- */
   .settings {
-    position: fixed; right: 18px; top: 96px; bottom: 52px; z-index: 15; width: 280px;
+    position: fixed; right: 18px; top: 72px; bottom: 12px; z-index: 15; width: 300px;
     display: none; overflow-y: auto;
     background: var(--paper-raised); border: 1px solid var(--line); border-radius: 14px;
     box-shadow: 0 10px 30px rgba(60, 40, 20, .08);
-    padding: 14px 14px 18px; font-size: 12px; color: var(--ink-soft);
+    padding: 14px 14px 18px; font-size: 13px; color: var(--ink-soft);
   }
   .settings.open { display: block; }
   .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-  .sheet-head b { color: var(--ink); font-size: 14px; font-weight: 600; }
+  .sheet-head b { color: var(--ink); font-size: 15px; font-weight: 600; }
   .x {
     border: 0; background: none; color: var(--ink-faint); font: 20px/1 var(--ui);
     width: 28px; height: 28px; border-radius: 7px; cursor: pointer;
   }
   .x:hover { background: var(--hover); color: var(--ink); }
-  .settings h4 { margin: 16px 2px 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); }
-  .settings h5 { margin: 10px 8px 2px; font-size: 11px; font-weight: 400; color: var(--ink-faint); }
+  .settings h4 { margin: 16px 2px 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); }
   .fonts { display: grid; gap: 2px; }
   .fonts button {
     border: 0; background: none; text-align: left; padding: 6px 8px; border-radius: 7px; cursor: pointer; color: var(--ink);
   }
-  .fonts button span { display: block; font-size: 16px; line-height: 1.25; }
-  .fonts button small { font: 11px var(--ui); color: var(--ink-faint); }
+  .fonts button span { display: block; font-size: 17px; line-height: 1.25; }
+  .fonts button small { font: 12px var(--ui); color: var(--ink-faint); }
   .fonts button:hover { background: var(--hover); }
   .fonts button.on { background: var(--on); }
   .settings label { display: flex; justify-content: space-between; margin: 10px 2px 2px; }
@@ -182,13 +190,13 @@
   .settings label.check input { margin: 2px 0 0; accent-color: var(--accent); }
   .settings label.check small { grid-column: 2; color: var(--ink-faint); }
   .reset {
-    margin-top: 18px; width: 100%; height: 32px; border: 1px solid var(--line); border-radius: 8px;
+    margin-top: 18px; width: 100%; height: 36px; border: 1px solid var(--line); border-radius: 8px;
     background: none; color: var(--ink-soft); font: inherit; cursor: pointer;
   }
   .reset:hover { background: var(--hover); color: var(--ink); }
 
-  @media (max-width: 1400px) { body:has(.settings.open) .page { margin-left: 24px; margin-right: 300px; } }
-  @media (min-width: 1000px) and (max-width: 1400px) { body:has(.settings.open) .page { margin-left: auto; margin-right: max(300px, calc((100vw - var(--measure)) / 2)); } }
+  @media (max-width: 1400px) { body:has(.settings.open) .page { margin-left: 24px; margin-right: 320px; } }
+  @media (min-width: 1000px) and (max-width: 1400px) { body:has(.settings.open) .page { margin-left: auto; margin-right: max(320px, calc((100vw - var(--measure)) / 2)); } }
 
   /* ---------- guida ---------- */
   .guide {
@@ -201,7 +209,7 @@
     position: relative; max-width: 680px; margin: 0 auto;
     background: var(--paper-raised); border: 1px solid var(--line); border-radius: 16px;
     box-shadow: 0 20px 50px rgba(60, 40, 20, .12);
-    padding: 36px 44px 40px; font-size: 14px; line-height: 1.6; color: var(--ink);
+    padding: 36px 44px 40px; font-size: 15px; line-height: 1.6; color: var(--ink);
   }
   .guide-card .x { position: absolute; top: 14px; right: 14px; }
   .guide-card h2 { font: 600 26px/1.2 var(--font), serif; margin: 0 0 4px; }
@@ -214,9 +222,9 @@
   .guide-card table { width: 100%; border-collapse: collapse; margin-top: 4px; }
   .guide-card td { padding: 6px 4px; border-bottom: 1px solid var(--line); color: var(--ink-soft); vertical-align: top; }
   .guide-card td:last-child { text-align: right; white-space: nowrap; }
-  .guide-card tr.group td { color: var(--ink-faint); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding-top: 16px; }
-  .guide-card kbd { font-size: 12px; color: var(--ink-soft); background: var(--paper); padding: 1px 6px; }
-  .guide-card .g { font-family: var(--font), serif; font-size: 16px; color: var(--ink); }
+  .guide-card tr.group td { color: var(--ink-faint); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; padding-top: 16px; }
+  .guide-card kbd { font-size: 13px; color: var(--ink-soft); background: var(--paper); padding: 1px 6px; }
+  .guide-card .g { font-family: var(--font), serif; font-size: 17px; color: var(--ink); }
 
   @media (max-width: 900px) {
     .file { display: none; }
@@ -240,14 +248,6 @@
       <button id="b-italic" class="glyph i" data-cmd="italic" title="Corsivo (Ctrl+I)">C</button>
       <span class="sep"></span>
       <button id="b-syn" title="Sinonimi della parola selezionata (Maiusc+F7)">Sinonimi</button>
-    </div>
-    <div class="row chars">
-      <button class="glyph" data-char="È" title="È maiuscola — oppure scrivi E' seguito da spazio">È</button>
-      <button class="glyph" data-char="«" title="Caporale aperta — oppure scrivi &lt;&lt;">«</button>
-      <button class="glyph" data-char="»" title="Caporale chiusa — oppure scrivi &gt;&gt;">»</button>
-      <button class="glyph" data-char="‹" title="Caporale singola aperta">‹</button>
-      <button class="glyph" data-char="›" title="Caporale singola chiusa">›</button>
-      <button class="glyph" id="b-wrap" title="Racchiudi la selezione tra caporali (Ctrl+Maiusc+')">«…»</button>
     </div>
   </nav>
 
@@ -288,6 +288,15 @@
   <span class="msg" id="msg"></span>
 </footer>
 
+<nav class="chars" id="chars" aria-label="Caratteri">
+  <button class="glyph" data-char="È" title="È maiuscola — oppure scrivi E' seguito da spazio">È</button>
+  <button class="glyph" data-char="«" title="Caporale aperta — oppure scrivi &lt;&lt;">«</button>
+  <button class="glyph" data-char="»" title="Caporale chiusa — oppure scrivi &gt;&gt;">»</button>
+  <button class="glyph" data-char="‹" title="Caporale singola aperta">‹</button>
+  <button class="glyph" data-char="›" title="Caporale singola chiusa">›</button>
+  <button class="glyph" id="b-wrap" title="Racchiudi la selezione tra caporali (Ctrl+Maiusc+')">«…»</button>
+</nav>
+
 <aside class="settings" id="settings" aria-label="Impostazioni">
   <div class="sheet-head"><b>Impostazioni</b><button class="x" id="settings-close" aria-label="Chiudi">×</button></div>
   <h4>Font</h4>
@@ -320,7 +329,7 @@
     </ul>
 
     <h3>Caratteri italiani</h3>
-    <p>La seconda riga della barra inserisce i caratteri scomodi da trovare sulla tastiera: <span class="g">È « » ‹ ›</span>. Il pulsante <span class="g">«…»</span> racchiude tra caporali il testo selezionato.</p>
+    <p>I pulsanti sul lato destro inseriscono i caratteri scomodi da trovare sulla tastiera: <span class="g">È « » ‹ ›</span>. Il pulsante <span class="g">«…»</span> racchiude tra caporali il testo selezionato.</p>
     <p>Con le <b>correzioni automatiche</b> attive puoi anche scrivere <kbd>&lt;&lt;</kbd> per <span class="g">«</span>, <kbd>&gt;&gt;</kbd> per <span class="g">»</span> ed <kbd>E'</kbd> seguito da spazio per <span class="g">È</span>. Si disattivano dalle impostazioni.</p>
 
     <h3>Refusi</h3>
@@ -339,6 +348,7 @@
 
     <h3>Impostazioni</h3>
     <p>Il pulsante con i cursori, in alto a destra, apre le impostazioni: font, dimensione di base, larghezza della colonna e correzioni automatiche. <b>Ripristina predefiniti</b> riporta tutto com'era.</p>
+    <p>Per cambiare aria mentre scrivi, <kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>F</kbd> passa al font successivo senza aprire le impostazioni.</p>
 
     <h3>File</h3>
     <p>Screeve apre e salva file <b>.docx</b>, che si aprono identici in Word e Google Documenti. Se apri un documento con elementi che Screeve non gestisce, come tabelle o immagini, ti avvisa prima e ti propone di salvare una copia, così l'originale resta intatto.</p>
@@ -360,6 +370,7 @@
       <tr><td>Sinonimi</td><td><kbd>Maiusc</kbd>+<kbd>F7</kbd></td></tr>
       <tr class="group"><td colspan="2">Vista</td></tr>
       <tr><td>Ingrandisci · Rimpicciolisci · 100%</td><td><kbd>Ctrl</kbd>+<kbd>+</kbd> · <kbd>Ctrl</kbd>+<kbd>−</kbd> · <kbd>Ctrl</kbd>+<kbd>0</kbd></td></tr>
+      <tr><td>Font successivo</td><td><kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>F</kbd></td></tr>
       <tr><td>Impostazioni</td><td><kbd>Ctrl</kbd>+<kbd>,</kbd></td></tr>
       <tr><td>Guida</td><td><kbd>F1</kbd></td></tr>
       <tr><td>Chiudi finestre e suggerimenti</td><td><kbd>Esc</kbd></td></tr>
@@ -374,21 +385,19 @@ const root = document.documentElement.style;
 document.execCommand('defaultParagraphSeparator', false, 'p');
 
 /* ---------- impostazioni ---------- */
+// Tutti a tratto pieno: niente filetti sottili che sullo schermo si perdono.
+// Due classici e tre voci diverse, per cambiare aria mentre si scrive.
 const FONTS = [
-  { name: 'Literata',       size: 19,   note: 'nato per la lettura lunga su schermo', group: 'Raffinati' },
-  { name: 'Source Serif 4', size: 19.5, note: 'sobrio, nitido, molto leggibile',      group: 'Raffinati' },
-  { name: 'Newsreader',     size: 20.5, note: 'editoriale, caldo',                    group: 'Raffinati' },
-  { name: 'Lora',           size: 18.5, note: 'morbido, quasi calligrafico',          group: 'Raffinati' },
-  { name: 'EB Garamond',    size: 22,   note: 'il classico da libro',                 group: 'Raffinati' },
-  { name: 'Crimson Pro',    size: 21.5, note: 'garalde elegante e leggero',           group: 'Raffinati' },
-  { name: 'Merriweather',   size: 17.5, note: 'robusto, occhio grande, regge ogni schermo', group: 'Corposi' },
-  { name: 'Vollkorn',       size: 20,   note: 'scuro e caldo, il "pane quotidiano"',  group: 'Corposi' },
-  { name: 'Bitter',         size: 18,   note: 'graziato squadrato, molto stabile',    group: 'Corposi' },
-  { name: 'Alegreya',       size: 20,   note: 'denso e vivace, ritmo calligrafico',   group: 'Corposi' },
+  { name: 'Literata',              size: 19,   note: 'disegnato per i libri digitali' },
+  { name: 'Libre Baskerville',     size: 17.5, note: 'ampio ed elegante, molto arioso' },
+  { name: 'Zilla Slab',            size: 20,   note: 'graziato squadrato, deciso e simpatico' },
+  { name: 'Atkinson Hyperlegible', size: 18.5, note: 'senza grazie, nato per la massima leggibilità' },
+  { name: 'Courier Prime',         size: 18,   note: 'la macchina da scrivere, ripensata per lo schermo' },
 ];
 const DEFAULTS = { font: 'Literata', size: 19, measure: 33, auto: true };
 let settings = { ...DEFAULTS };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('screeve-settings') || '{}')); } catch {}
+if (!FONTS.some(f => f.name === settings.font)) settings = { ...DEFAULTS };
 
 function saveSettings() {
   try { localStorage.setItem('screeve-settings', JSON.stringify(settings)); } catch {}
@@ -412,19 +421,25 @@ function setSetting(patch) {
   applySettings();
 }
 
-let lastGroup;
-$('#fonts').innerHTML = FONTS.map(f => {
-  const h = f.group !== lastGroup ? `<h5>${f.group}</h5>` : '';
-  lastGroup = f.group;
-  return h + `<button data-font="${f.name}"><span style="font-family:'${f.name}'">${f.name}</span><small>${f.note}</small></button>`;
-}).join('');
+$('#fonts').innerHTML = FONTS.map(f =>
+  `<button data-font="${f.name}"><span style="font-family:'${f.name}'">${f.name}</span><small>${f.note}</small></button>`).join('');
+
+function setFont(f) {
+  setSetting({ font: f.name, size: f.size }); // ogni font ha il suo corpo ideale
+}
 
 $('#fonts').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
-  const f = FONTS.find(x => x.name === b.dataset.font);
-  setSetting({ font: f.name, size: f.size }); // ogni font ha il suo corpo ideale
+  setFont(FONTS.find(x => x.name === b.dataset.font));
 });
+
+// Ctrl+Maiusc+F: font successivo, senza aprire le impostazioni
+function nextFont() {
+  const f = FONTS[(FONTS.findIndex(x => x.name === settings.font) + 1) % FONTS.length];
+  setFont(f);
+  flash(f.name);
+}
 $('#size').addEventListener('input', e => setSetting({ size: +e.target.value }));
 $('#measure').addEventListener('input', e => setSetting({ measure: +e.target.value }));
 $('#auto').addEventListener('change', e => setSetting({ auto: e.target.checked }));
@@ -499,7 +514,7 @@ function wrapGuillemets() {
   updateCount();
 }
 
-document.querySelector('.tools').addEventListener('mousedown', e => {
+function onToolMousedown(e) {
   const btn = e.target.closest('button');
   if (!btn) return;
   e.preventDefault(); // non rubare il focus all'editor
@@ -508,7 +523,9 @@ document.querySelector('.tools').addEventListener('mousedown', e => {
   else if (btn.dataset.char) document.execCommand('insertText', false, btn.dataset.char);
   else if (btn.id === 'b-wrap') wrapGuillemets();
   else if (btn.id === 'b-syn') openSynonyms();
-});
+}
+$('.tools').addEventListener('mousedown', onToolMousedown);
+$('#chars').addEventListener('mousedown', onToolMousedown);
 
 /* ---------- correzioni automatiche durante la digitazione ---------- */
 function replaceBeforeCaret(node, offset, len, str) {
@@ -769,6 +786,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.ctrlKey && !e.altKey && e.key === ',') { e.preventDefault(); toggleSettings(); return; }
+  if (e.ctrlKey && e.shiftKey && !e.altKey && e.code === 'KeyF') { e.preventDefault(); nextFont(); return; }
   if (e.key === 'F7' && e.shiftKey) { e.preventDefault(); openSynonyms(); return; }
   if (e.key === 'F7') { e.preventDefault(); gotoNextTypo(); return; }
   if (e.ctrlKey && !e.altKey && ['+', '=', '-', '0'].includes(e.key)) {
