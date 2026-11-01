@@ -11,7 +11,9 @@
     "tauri": "tauri",
     "app:dev": "tauri dev",
     "app:build": "tauri build --no-bundle && node scripts/copia-dizionari.mjs",
-    "app:pacchetto": "npm run app:build && node scripts/pacchetto.mjs"
+    "app:pacchetto": "npm run app:build && node scripts/pacchetto.mjs",
+    "app:build:mac": "tauri build --bundles app",
+    "app:pacchetto:mac": "npm run app:build:mac && node scripts/pacchetto.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.4",

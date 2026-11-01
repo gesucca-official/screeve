@@ -1,7 +1,9 @@
 //! Dove Screeve trova i suoi file: i dizionari accanto all'eseguibile, e i dati di
 //! chi scrive (dizionario personale, più avanti le impostazioni) accanto
 //! all'eseguibile se la cartella è scrivibile, come su una chiavetta USB, altrimenti
-//! in %APPDATA%\Screeve.
+//! in %APPDATA%\Screeve. Su macOS l'app è un bundle (Screeve.app) che non si deve
+//! modificare: i dizionari stanno in Contents/Resources e i dati in
+//! ~/Library/Application Support/Screeve.
 
 use std::fs::{self, OpenOptions};
 use std::path::PathBuf;
@@ -14,8 +16,12 @@ fn cartella_eseguibile() -> Option<PathBuf> {
 /// La cartella `dizionari/`: accanto all'eseguibile, e in sviluppo quella del progetto.
 pub fn cartella_dizionari() -> Option<PathBuf> {
     let accanto = cartella_eseguibile().map(|c| c.join("dizionari"));
+    // nel bundle: Screeve.app/Contents/MacOS/screeve → Screeve.app/Contents/Resources
+    let risorse = cfg!(target_os = "macos")
+        .then(|| cartella_eseguibile().and_then(|c| c.parent().map(|p| p.join("Resources").join("dizionari"))))
+        .flatten();
     let progetto = cfg!(debug_assertions).then(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("dizionari"));
-    accanto.into_iter().chain(progetto).find(|c| c.join("it_IT.dic").is_file())
+    risorse.into_iter().chain(accanto).chain(progetto).find(|c| c.join("it_IT.dic").is_file())
 }
 
 /// Un file della cartella `dizionari/`.
@@ -30,14 +36,26 @@ pub fn cartella_dati() -> Option<PathBuf> {
     static CARTELLA: OnceLock<Option<PathBuf>> = OnceLock::new();
     CARTELLA
         .get_or_init(|| {
-            if let Some(c) = cartella_eseguibile().filter(|c| scrivibile(c)) {
-                return Some(c);
+            // portable solo fuori da macOS: scrivere dentro il bundle ne romperebbe la firma
+            if !cfg!(target_os = "macos") {
+                if let Some(c) = cartella_eseguibile().filter(|c| scrivibile(c)) {
+                    return Some(c);
+                }
             }
-            let c = PathBuf::from(std::env::var_os("APPDATA")?).join("Screeve");
+            let c = cartella_utente()?;
             fs::create_dir_all(&c).ok()?;
             Some(c)
         })
         .clone()
+}
+
+/// La cartella dei dati nel profilo dell'utente, quando non si può stare accanto all'eseguibile.
+fn cartella_utente() -> Option<PathBuf> {
+    if cfg!(target_os = "macos") {
+        Some(PathBuf::from(std::env::var_os("HOME")?).join("Library").join("Application Support").join("Screeve"))
+    } else {
+        Some(PathBuf::from(std::env::var_os("APPDATA")?).join("Screeve"))
+    }
 }
 
 /// Le impostazioni (screeve.json), come le ha scritte l'interfaccia.

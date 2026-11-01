@@ -1,7 +1,7 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
 
 // Preferenze della postazione, in screeve.json accanto all'eseguibile (o in
-// %APPDATA%\Screeve, vedi src-tauri/src/dati.rs). Il localStorage della WebView ne
+// %APPDATA%\Screeve; su macOS in ~/Library/Application Support/Screeve, vedi src-tauri/src/dati.rs). Il localStorage della WebView ne
 // tiene una copia: all'avvio serve subito, prima che Rust risponda.
 
 export interface Font {

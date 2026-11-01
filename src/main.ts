@@ -13,6 +13,7 @@ import { schema } from './editor/schema';
 import { gestioneCorrettore } from './correttore';
 import { gestioneFile } from './file';
 import { gestioneSinonimi } from './sinonimi';
+import { adattaScorciatoie, modificatore } from './piattaforma';
 import { DEFAULTS, FONTS, fontByName, loadSettings, loadSettingsFile, saveSettings, type Font, type Settings } from './settings';
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
@@ -195,7 +196,8 @@ $('.zoom').addEventListener('mousedown', e => {
 });
 
 addEventListener('wheel', e => {
-  if (!e.ctrlKey) return;
+  // su macOS il pizzico del trackpad arriva come rotellina con Ctrl
+  if (!e.ctrlKey && !modificatore(e)) return;
   e.preventDefault();
   zoomBy(e.deltaY < 0 ? 1 : -1);
 }, { passive: false });
@@ -203,7 +205,7 @@ addEventListener('wheel', e => {
 /* ---------- tastiera ---------- */
 // Le scorciatoie di scrittura (Ctrl+B, Ctrl+Alt+1…) sono nel keymap dell'editor; qui quelle dell'app.
 document.addEventListener('keydown', e => {
-  const ctrl = e.ctrlKey && !e.altKey;
+  const ctrl = modificatore(e) && !e.altKey;
   if (e.key === 'F1') { e.preventDefault(); toggleGuide(); return; }
   if (e.key === 'Escape') {
     if (spell.aperto()) spell.chiudi();
@@ -251,7 +253,7 @@ document.addEventListener('keydown', e => {
 
 /* ---------- interfaccia che si ritira mentre scrivi ---------- */
 view.dom.addEventListener('keydown', e => {
-  if (e.key.length === 1 && !e.ctrlKey && !e.altKey) document.body.classList.add('typing');
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) document.body.classList.add('typing');
 });
 let lx: number | undefined, ly = 0;
 document.addEventListener('mousemove', e => {
@@ -309,6 +311,7 @@ function updateCplSoon(): void {
 }
 addEventListener('resize', updateCplSoon);
 
+adattaScorciatoie();
 applySettings();
 // screeve.json vale più della copia nel localStorage; se non c'è ancora, lo si crea
 loadSettingsFile().then(fromFile => {

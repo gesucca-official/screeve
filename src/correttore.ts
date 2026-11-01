@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import type { Node } from 'prosemirror-model';
 import { TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
+import { tasti } from './piattaforma';
 import { elencoRefusi, refuso, refusiKey, replaceWord, type Intervallo, type RefusiMeta } from './editor';
 
 // Correttore ortografico: invia a Rust (src-tauri/src/correttore) i paragrafi
@@ -137,7 +138,7 @@ export function gestioneCorrettore({ view, flash }: CorrettoreOptions) {
     const voci = suggerimenti.map((s, i) => {
       const b = el('button', 'sugg');
       b.dataset.i = String(i);
-      b.append(el('span', '', s), el('kbd', '', i === 0 ? 'Alt+Invio' : `Alt+${i + 1}`));
+      b.append(el('span', '', s), el('kbd', '', tasti(i === 0 ? 'Alt+Invio' : `Alt+${i + 1}`)));
       return b;
     });
     const vuoto = suggerimenti.length ? [] : [el('div', 'empty', 'Nessun suggerimento')];
