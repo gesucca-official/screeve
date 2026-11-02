@@ -16,14 +16,28 @@ export function currentBlock(state: EditorState): Block {
 export function setBlock(block: Block): Command {
   return (state, dispatch) => {
     const target = block !== 'p' && currentBlock(state) === block ? 'p' : block;
+    // Testo su ciò che è già testo non fa nulla: non deve cancellarne l'aspetto originale
+    if (target === 'p' && onlyParagraphs(state)) return true;
     return target === 'p'
       ? setBlockType(schema.nodes.paragraph)(state, dispatch)
       : setBlockType(schema.nodes.heading, { level: target === 'h1' ? 1 : 2 })(state, dispatch);
   };
 }
 
+function onlyParagraphs(state: EditorState): boolean {
+  let only = true;
+  const { from, to } = state.selection;
+  state.doc.nodesBetween(from, to, n => {
+    if (n.isTextblock && n.type !== schema.nodes.paragraph) only = false;
+    return !n.isTextblock;
+  });
+  return only;
+}
+
 export const toggleStrong = toggleMark(schema.marks.strong);
 export const toggleEm = toggleMark(schema.marks.em);
+export const toggleUnderline = toggleMark(schema.marks.underline);
+export const toggleStrike = toggleMark(schema.marks.strike);
 
 // Il mark è attivo dove sta il cursore, o su tutta la selezione?
 export function markActive(state: EditorState, type: MarkType): boolean {

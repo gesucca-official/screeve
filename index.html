@@ -26,6 +26,8 @@
       <span class="sep"></span>
       <button class="glyph b" data-mark="strong" title="Grassetto (Ctrl+B)">G</button>
       <button class="glyph i" data-mark="em"     title="Corsivo (Ctrl+I)">C</button>
+      <button class="glyph u" data-mark="underline" title="Sottolineato (Ctrl+U)">S</button>
+      <button class="glyph s" data-mark="strike" title="Barrato (Ctrl+Maiusc+X)">B</button>
       <span class="sep"></span>
       <button id="b-syn" title="Sinonimi della parola selezionata (Maiusc+F7)">Sinonimi</button>
     </div>
@@ -43,6 +45,13 @@
     </button>
   </div>
 </header>
+
+<nav class="indice" id="indice" aria-label="Indice">
+  <button class="icon" id="b-indice" title="Indice dei titoli (Ctrl+\)" aria-label="Indice dei titoli" aria-controls="indice-lista">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 7h14M9 12h10M9 17h10"/></svg>
+  </button>
+  <div class="indice-lista" id="indice-lista"></div>
+</nav>
 
 <main class="page">
   <article id="editor" spellcheck="false"></article>
@@ -94,7 +103,7 @@
     <h3>Struttura del testo</h3>
     <ul>
       <li><b>Titolo</b> per i capitoli, <b>Sottotitolo</b> per ciò che sta sotto, <b>Testo</b> per tutto il resto. Ripremi Titolo o Sottotitolo per tornare a Testo.</li>
-      <li><b>G</b> e <b>C</b> applicano grassetto e corsivo.</li>
+      <li><b>G</b>, <b>C</b>, <b style="text-decoration: underline">S</b> e <b style="text-decoration: line-through">B</b> applicano grassetto, corsivo, sottolineato e barrato.</li>
       <li>In Word e Google Documenti i titoli diventano <i>Titolo 1</i> e <i>Titolo 2</i>: compaiono nella struttura del documento e negli indici automatici.</li>
     </ul>
 
@@ -124,8 +133,12 @@
     <h3>File</h3>
     <p>Screeve apre e salva file <b>.docx</b>, che si aprono identici in Word e Google Documenti. In alto a sinistra vedi il nome del file e se è <i>salvato</i> o <i>modificato</i>: cliccandoci sopra trovi <b>Nuovo</b>, <b>Apri</b>, <b>Salva</b> e <b>Salva con nome</b>, che hanno anche le loro scorciatoie. Prima di chiudere o di aprire un altro documento, Screeve ti chiede se vuoi salvare.</p>
     <p>Finché ci sono modifiche non salvate, Screeve ne tiene una copia di sicurezza: se si chiude all'improvviso, alla riapertura ti propone di recuperarle. Il tuo file non viene mai toccato finché non salvi.</p>
-    <p>Nel file il testo è in Georgia a 12 punti, con paragrafi senza spaziature né rientri: il font che scegli qui serve solo a schermo, e l'impaginazione la rifinisci poi in Word. Titolo e Sottotitolo diventano <i>Titolo 1</i> e <i>Titolo 2</i>.</p>
+    <p>Il font che scegli qui serve solo a schermo. Un documento nuovo si salva in Calibri a 12 punti, con interlinea ampia e un po' di spazio dopo ogni paragrafo; un documento aperto da un file conserva la sua impaginazione: font, interlinea, spazi, margini, intestazioni. Titolo e Sottotitolo diventano <i>Titolo 1</i> e <i>Titolo 2</i>.</p>
     <p>Per aprire un documento puoi anche trascinarlo sulla finestra o sull'icona di Screeve, oppure usare <i>Apri con</i> dal menu di Windows. Se contiene elementi che Screeve non gestisce, come tabelle, immagini o note, ti avvisa prima e ti propone di salvare una copia, così l'originale resta intatto.</p>
+
+    <h3>Indice</h3>
+    <p>Il pulsante con le righe, in alto a sinistra, apre l'elenco di titoli e sottotitoli del documento: un clic ti porta lì, e la voce evidenziata è la parte in cui stai scrivendo. Si richiude con lo stesso pulsante o con <kbd>Ctrl</kbd>+<kbd>\</kbd>.</p>
+    <p>Se il documento non ha nessun titolo vero, l'indice cerca le righe formattate a mano come titoli: brevi, con un font, un corpo o un allineamento diversi dal resto, oppure tutte in grassetto. Il documento non cambia; usa <b>Titolo</b> e <b>Sottotitolo</b> se vuoi che quelle righe siano titoli anche in Word e Google Documenti.</p>
 
     <h3>Scorciatoie</h3>
     <table>
@@ -134,6 +147,7 @@
       <tr><td>Salva con nome</td><td><kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>S</kbd></td></tr>
       <tr class="group"><td colspan="2">Formattazione</td></tr>
       <tr><td>Grassetto · Corsivo</td><td><kbd>Ctrl</kbd>+<kbd>B</kbd> · <kbd>Ctrl</kbd>+<kbd>I</kbd></td></tr>
+      <tr><td>Sottolineato · Barrato</td><td><kbd>Ctrl</kbd>+<kbd>U</kbd> · <kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>X</kbd></td></tr>
       <tr><td>Titolo · Sottotitolo · Testo</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>1</kbd> · <kbd>2</kbd> · <kbd>0</kbd></td></tr>
       <tr><td>Racchiudi la selezione in « »</td><td><kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>'</kbd></td></tr>
       <tr><td>Annulla · Ripeti</td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> · <kbd>Ctrl</kbd>+<kbd>Y</kbd></td></tr>
@@ -145,6 +159,7 @@
       <tr class="group"><td colspan="2">Vista</td></tr>
       <tr><td>Ingrandisci · Rimpicciolisci · 100%</td><td><kbd>Ctrl</kbd>+<kbd>+</kbd> · <kbd>Ctrl</kbd>+<kbd>−</kbd> · <kbd>Ctrl</kbd>+<kbd>0</kbd></td></tr>
       <tr><td>Font successivo</td><td><kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>F</kbd></td></tr>
+      <tr><td>Indice dei titoli</td><td><kbd>Ctrl</kbd>+<kbd>\</kbd></td></tr>
       <tr><td>Impostazioni</td><td><kbd>Ctrl</kbd>+<kbd>,</kbd></td></tr>
       <tr><td>Guida</td><td><kbd>F1</kbd></td></tr>
       <tr><td>Chiudi finestre e suggerimenti</td><td><kbd>Esc</kbd></td></tr>

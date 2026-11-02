@@ -20,6 +20,9 @@ pub struct Copia {
     /// il file di partenza; `None` per un documento mai salvato
     pub percorso: Option<String>,
     pub nome: String,
+    /// il file aperto che fa da modello per l'impaginazione
+    #[serde(default)]
+    pub origine: Option<String>,
     /// copia di un documento con elementi persi, non ancora salvata (vedi file.ts)
     #[serde(default)]
     pub da_salvare: bool,
@@ -141,6 +144,7 @@ mod test {
         Copia {
             percorso: None,
             nome: "Senza titolo".into(),
+            origine: None,
             da_salvare: false,
             blocchi: vec![Blocco::paragrafo(vec![Run::new(testo, false, true)])],
             quando,

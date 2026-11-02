@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use zip::write::{SimpleFileOptions, ZipWriter};
 use zip::CompressionMethod;
 
-const INTESTAZIONE: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#;
+pub(super) const INTESTAZIONE: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"#;
 const NS_W: &str = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
 const CONTENT_TYPES: &str = r#"<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>"#;
@@ -15,23 +15,40 @@ const RELS: &str = r#"<Relationships xmlns="http://schemas.openxmlformats.org/pa
 
 const DOCUMENT_RELS: &str = r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/></Relationships>"#;
 
-// Georgia 12 pt e lingua italiana per tutto il documento; paragrafi neutri (niente
-// spaziatura né rientri, interlinea singola), l'impaginazione si fa poi in Word.
 // Titolo e Sottotitolo sono gli stili integrati "heading 1" e "heading 2": Word li
 // mostra come Titolo 1 e Titolo 2 e li mette nel riquadro di spostamento.
+macro_rules! stile_titolo_1 {
+    () => {
+        concat!(
+            r#"<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="9"/><w:qFormat/>"#,
+            r#"<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="480" w:after="120" w:line="240" w:lineRule="auto"/><w:outlineLvl w:val="0"/></w:pPr>"#,
+            r#"<w:rPr><w:b/><w:bCs/><w:sz w:val="44"/><w:szCs w:val="44"/></w:rPr></w:style>"#
+        )
+    };
+}
+macro_rules! stile_titolo_2 {
+    () => {
+        concat!(
+            r#"<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="9"/><w:unhideWhenUsed/><w:qFormat/>"#,
+            r#"<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="120" w:after="360" w:line="240" w:lineRule="auto"/><w:outlineLvl w:val="1"/></w:pPr>"#,
+            r#"<w:rPr><w:i/><w:iCs/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:style>"#
+        )
+    };
+}
+pub(super) const STILE_TITOLO_1: &str = stile_titolo_1!();
+pub(super) const STILE_TITOLO_2: &str = stile_titolo_2!();
+
+// Un file nuovo: Calibri 12 pt e lingua italiana, interlinea 1,25 e 8 pt dopo ogni
+// paragrafo. Calibri c'è in Word (Windows e Mac) e in Google Documenti.
 const STYLES: &str = concat!(
     r#"<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">"#,
     r#"<w:docDefaults>"#,
-    r#"<w:rPrDefault><w:rPr><w:rFonts w:ascii="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia" w:cs="Georgia"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:lang w:val="it-IT" w:eastAsia="it-IT" w:bidi="ar-SA"/></w:rPr></w:rPrDefault>"#,
-    r#"<w:pPrDefault><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault>"#,
+    r#"<w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:eastAsia="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:lang w:val="it-IT" w:eastAsia="it-IT" w:bidi="ar-SA"/></w:rPr></w:rPrDefault>"#,
+    r#"<w:pPrDefault><w:pPr><w:spacing w:before="0" w:after="160" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault>"#,
     r#"</w:docDefaults>"#,
     r#"<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>"#,
-    r#"<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="9"/><w:qFormat/>"#,
-    r#"<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="480" w:after="120"/><w:outlineLvl w:val="0"/></w:pPr>"#,
-    r#"<w:rPr><w:b/><w:bCs/><w:sz w:val="44"/><w:szCs w:val="44"/></w:rPr></w:style>"#,
-    r#"<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="9"/><w:unhideWhenUsed/><w:qFormat/>"#,
-    r#"<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="120" w:after="360"/><w:outlineLvl w:val="1"/></w:pPr>"#,
-    r#"<w:rPr><w:i/><w:iCs/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:style>"#,
+    stile_titolo_1!(),
+    stile_titolo_2!(),
     r#"<w:style w:type="character" w:default="1" w:styleId="DefaultParagraphFont"><w:name w:val="Default Paragraph Font"/><w:uiPriority w:val="1"/><w:semiHidden/><w:unhideWhenUsed/></w:style>"#,
     r#"</w:styles>"#
 );
@@ -80,7 +97,20 @@ pub(super) fn document(blocchi: &[Blocco]) -> String {
             _ => {}
         }
         for r in &b.run {
-            run(&mut s, r);
+            let mut proprieta = String::new();
+            if r.grassetto {
+                proprieta.push_str("<w:b/>");
+            }
+            if r.corsivo {
+                proprieta.push_str("<w:i/>");
+            }
+            if r.barrato {
+                proprieta.push_str("<w:strike/>");
+            }
+            if r.sottolineato {
+                proprieta.push_str(r#"<w:u w:val="single"/>"#);
+            }
+            run(&mut s, r, &proprieta);
         }
         s.push_str("</w:p>");
     }
@@ -90,19 +120,15 @@ pub(super) fn document(blocchi: &[Blocco]) -> String {
     s
 }
 
-fn run(s: &mut String, r: &Run) {
+/// Un run; `proprieta` è l'interno di <w:rPr>.
+pub(super) fn run(s: &mut String, r: &Run, proprieta: &str) {
     if r.testo.is_empty() {
         return;
     }
     s.push_str("<w:r>");
-    if r.grassetto || r.corsivo {
+    if !proprieta.is_empty() {
         s.push_str("<w:rPr>");
-        if r.grassetto {
-            s.push_str("<w:b/>");
-        }
-        if r.corsivo {
-            s.push_str("<w:i/>");
-        }
+        s.push_str(proprieta);
         s.push_str("</w:rPr>");
     }
     // tabulazioni e a capo hanno elementi propri, il resto va in <w:t>

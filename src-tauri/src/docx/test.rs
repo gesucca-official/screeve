@@ -55,8 +55,25 @@ fn pacchetto(document: &str, styles: Option<&str>, altre: &[(&str, &str)]) -> Ve
     zip.finish().unwrap().into_inner()
 }
 
+/// Il formato originale ha i suoi test (modello_*): gli altri guardano testo e struttura.
+fn senza_formato(mut d: Documento) -> Documento {
+    for b in &mut d.blocchi {
+        b.formato = None;
+        // run distinti solo per il font tornano uno
+        let mut run: Vec<Run> = Vec::new();
+        for r in std::mem::take(&mut b.run) {
+            match run.last_mut() {
+                Some(u) if u.stesso_aspetto(&r) => u.testo.push_str(&r.testo),
+                _ => run.push(Run { formato: None, ..r }),
+            }
+        }
+        b.run = run;
+    }
+    d
+}
+
 fn leggi_byte(dati: Vec<u8>) -> Documento {
-    leggi(Cursor::new(dati)).unwrap()
+    senza_formato(leggi(Cursor::new(dati)).unwrap())
 }
 
 fn non_supportati(d: &Documento) -> Vec<(&'static str, u32)> {
@@ -130,12 +147,12 @@ fn stili_e_formattazione() {
     assert!(document.contains("Capitolo secondo &amp; &lt;ultimo&gt;"));
     assert!(document.contains("Colonna</w:t><w:tab/><w:t"));
     let [_, _, _, styles, settings, _] = scrittura::parti_fisse();
-    assert!(styles.contains(r#"w:ascii="Georgia""#));
+    assert!(styles.contains(r#"w:ascii="Calibri""#));
     assert!(styles.contains(r#"<w:sz w:val="24"/>"#));
     assert!(styles.contains(r#"<w:lang w:val="it-IT""#));
     assert!(styles.contains(r#"<w:name w:val="heading 1"/>"#));
     assert!(styles.contains(r#"<w:name w:val="heading 2"/>"#));
-    assert!(styles.contains(r#"w:before="0" w:after="0" w:line="240""#));
+    assert!(styles.contains(r#"w:before="0" w:after="160" w:line="300""#));
     assert!(!styles.contains("w:firstLine"));
     assert!(settings.contains(r#"w:val="15""#));
 }
@@ -153,15 +170,15 @@ fn salvataggio_atomico() {
     fs::create_dir_all(&cartella).unwrap();
     let file = cartella.join("Il guardiano del faro.docx");
 
-    salva(&file, &esempio()).unwrap();
-    salva(&file, &[p("Seconda versione")]).unwrap(); // sovrascrive
-    assert_eq!(apri(&file).unwrap().blocchi, vec![p("Seconda versione")]);
+    salva(&file, &esempio(), None).unwrap();
+    salva(&file, &[p("Seconda versione")], None).unwrap(); // sovrascrive
+    assert_eq!(senza_formato(apri(&file).unwrap().0).blocchi, vec![p("Seconda versione")]);
 
     let rimasti: Vec<_> = fs::read_dir(&cartella).unwrap().map(|e| e.unwrap().file_name()).collect();
     assert_eq!(rimasti.len(), 1, "temporanei rimasti: {rimasti:?}");
 
     // cartella inesistente: errore chiaro, e nessun file a metà
-    let errore = salva(&cartella.join("non/esiste.docx"), &esempio()).unwrap_err();
+    let errore = salva(&cartella.join("non/esiste.docx"), &esempio(), None).unwrap_err();
     assert!(errore.contains("esiste.docx"), "{errore}");
     fs::remove_dir_all(&cartella).unwrap();
 }
@@ -170,7 +187,7 @@ fn salvataggio_atomico() {
 fn file_non_docx() {
     let errore = leggi(Cursor::new(b"{\\rtf1 un vecchio documento}".to_vec())).unwrap_err();
     assert!(errore.contains(".docx"), "{errore}");
-    let errore = apri(Path::new("Z:/non/esiste.docx")).unwrap_err();
+    let errore = apri(Path::new("Z:/non/esiste.docx")).err().unwrap();
     assert!(errore.contains("esiste.docx"), "{errore}");
 }
 
@@ -283,7 +300,7 @@ fn word_elementi_non_supportati() {
             p("Voce uno"),
             p("Voce due"),
             p("Non in elenco"),
-            p("sito e no"),
+            Blocco::paragrafo(vec![Run { sottolineato: true, ..r("sito", false, false) }, r(" e no", false, false)]),
             Blocco::paragrafo(vec![]),
             p("Fine sezione"),
         ]
@@ -299,10 +316,8 @@ fn word_elementi_non_supportati() {
             ("commenti", 1),
             ("revisioni", 4),
             ("elenchi", 2),
-            ("intestazioni", 1),
             ("interruzioni", 2),
             ("collegamenti", 1),
-            ("sottolineature", 1),
             ("simboli", 1),
         ]
     );
@@ -449,6 +464,237 @@ fn genera_esempio() {
     ]);
     let file = Path::new(env!("CARGO_MANIFEST_DIR")).join("../docs/esempio.docx");
     fs::create_dir_all(file.parent().unwrap()).unwrap();
-    salva(&file, &blocchi).unwrap();
-    assert_eq!(apri(&file).unwrap().blocchi, blocchi);
+    salva(&file, &blocchi, None).unwrap();
+    assert_eq!(senza_formato(apri(&file).unwrap().0).blocchi, blocchi);
+}
+
+/* ---------- il file aperto come modello ---------- */
+
+fn parte_zip(dati: &[u8], nome: &str) -> String {
+    let mut zip = zip::ZipArchive::new(Cursor::new(dati)).unwrap();
+    let mut testo = String::new();
+    std::io::Read::read_to_string(&mut zip.by_name(nome).unwrap(), &mut testo).unwrap();
+    testo
+}
+
+fn risalva(originale: Vec<u8>, modifica: impl FnOnce(&mut Vec<Blocco>)) -> Vec<u8> {
+    let mut d = leggi(Cursor::new(&originale)).unwrap();
+    modifica(&mut d.blocchi);
+    let modello = Modello::nuovo(originale).unwrap();
+    let mut dati = Cursor::new(Vec::new());
+    modello.scrivi(&mut dati, &d.blocchi).unwrap();
+    dati.into_inner()
+}
+
+const STILI_MODELLO: &str = r#"<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="paragraph" w:default="1" w:styleId="Normale"><w:name w:val="Normal"/></w:style><w:style w:type="paragraph" w:styleId="Titolo1"><w:name w:val="heading 1"/><w:basedOn w:val="Normale"/></w:style><w:style w:type="paragraph" w:styleId="Citazione"><w:name w:val="Quote"/><w:rPr><w:i/></w:rPr></w:style></w:styles>"#;
+
+fn documento_impaginato() -> Vec<u8> {
+    let document = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?><w:document {W} xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:background w:color="FFFFEE"/><w:body>
+<w:p><w:pPr><w:pStyle w:val="Titolo1"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Verdana"/><w:color w:val="112233"/></w:rPr><w:t>Il faro</w:t></w:r></w:p>
+<w:p><w:pPr><w:spacing w:after="240" w:line="360" w:lineRule="auto"/><w:ind w:firstLine="284"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="22"/></w:rPr><w:t>Forte</w:t></w:r><w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="22"/></w:rPr><w:t xml:space="preserve"> e piano</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="Citazione"/></w:pPr><w:r><w:t>Una citazione</w:t></w:r></w:p>
+<w:sectPr><w:headerReference w:type="default" r:id="rIdx0"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="2000" w:right="1800" w:bottom="2000" w:left="1800" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>
+</w:body></w:document>"#
+    );
+    let intestazione = format!(r#"<w:hdr {W}><w:p><w:r><w:t>Intestazione</w:t></w:r></w:p></w:hdr>"#);
+    pacchetto(&document, Some(STILI_MODELLO), &[("word/header1.xml", &intestazione)])
+}
+
+#[test]
+fn modello_conserva_impaginazione() {
+    let originale = documento_impaginato();
+    let dati = risalva(originale.clone(), |b| {
+        b[1].run[1].testo = " e riscritto".into();
+    });
+    let xml = parte_zip(&dati, "word/document.xml");
+    // margini, sfondo, spazi dei nomi
+    assert!(xml.contains(r#"<w:pgMar w:top="2000" w:right="1800""#), "{xml}");
+    assert!(xml.contains(r#"<w:background w:color="FFFFEE"/>"#), "{xml}");
+    assert!(xml.contains("xmlns:w14="), "{xml}");
+    assert!(xml.contains(r#"w:type="default" r:id="rIdx0""#), "{xml}");
+    // paragrafo: interlinea, spazio, rientro, stile e allineamento
+    assert!(xml.contains(r#"<w:pPr><w:spacing w:after="240" w:line="360" w:lineRule="auto"/><w:ind w:firstLine="284"/></w:pPr>"#), "{xml}");
+    assert!(xml.contains(r#"<w:pPr><w:pStyle w:val="Titolo1"/><w:jc w:val="center"/></w:pPr>"#), "{xml}");
+    // run: font e corpo, col grassetto al posto giusto e il testo nuovo
+    assert!(xml.contains(r#"<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="22"/></w:rPr><w:t xml:space="preserve">Forte"#), "{xml}");
+    assert!(xml.contains("e riscritto"), "{xml}");
+    assert!(xml.contains(r#"<w:rFonts w:ascii="Verdana"/><w:color w:val="112233"/>"#), "{xml}");
+    // le altre parti restano identiche
+    for parte in ["word/styles.xml", "word/header1.xml", "word/_rels/document.xml.rels", "[Content_Types].xml"] {
+        assert_eq!(parte_zip(&dati, parte), parte_zip(&originale, parte), "{parte}");
+    }
+}
+
+#[test]
+fn modello_risalvare_non_cambia_nulla() {
+    let una = risalva(documento_impaginato(), |_| {});
+    let due = risalva(una.clone(), |_| {});
+    assert_eq!(parte_zip(&una, "word/document.xml"), parte_zip(&due, "word/document.xml"));
+    assert_eq!(leggi_byte(una).blocchi, leggi_byte(due).blocchi);
+}
+
+#[test]
+fn modello_paragrafo_nuovo_eredita() {
+    let dati = risalva(documento_impaginato(), |b| {
+        b.insert(2, p("Scritto adesso"));
+    });
+    let xml = parte_zip(&dati, "word/document.xml");
+    let i = xml.find("Scritto adesso").unwrap();
+    let inizio = xml[..i].rfind("<w:p>").unwrap();
+    let nuovo = &xml[inizio..i];
+    assert!(nuovo.contains(r#"<w:spacing w:after="240" w:line="360""#), "{nuovo}");
+    assert!(nuovo.contains(r#"<w:rFonts w:ascii="Arial""#), "{nuovo}");
+    assert!(!nuovo.contains("<w:b/>"), "{nuovo}");
+}
+
+#[test]
+fn modello_titolo_nuovo_usa_lo_stile_del_file() {
+    let dati = risalva(documento_impaginato(), |b| b.push(h(1, "Capitolo nuovo")));
+    let xml = parte_zip(&dati, "word/document.xml");
+    assert!(xml.contains(r#"<w:pStyle w:val="Titolo1"/></w:pPr><w:r><w:t xml:space="preserve">Capitolo nuovo"#), "{xml}");
+    assert_eq!(parte_zip(&dati, "word/styles.xml"), STILI_MODELLO);
+
+    // il file non ha sottotitoli: lo stile si aggiunge, senza toccare gli altri
+    let dati = risalva(documento_impaginato(), |b| b.push(h(2, "Sottotitolo nuovo")));
+    let xml = parte_zip(&dati, "word/document.xml");
+    assert!(xml.contains(r#"<w:pStyle w:val="Heading2"/>"#), "{xml}");
+    let stili = parte_zip(&dati, "word/styles.xml");
+    assert!(stili.contains(r#"w:styleId="Heading2""#), "{stili}");
+    assert!(stili.contains(r#"w:styleId="Citazione""#), "{stili}");
+    assert_eq!(leggi_byte(dati).blocchi.last().unwrap().livello, 2);
+}
+
+#[test]
+fn modello_togliere_il_corsivo_di_uno_stile() {
+    let originale = documento_impaginato();
+    assert!(leggi_byte(originale.clone()).blocchi[2].run[0].corsivo);
+    let dati = risalva(originale, |b| b[2].run[0].corsivo = false);
+    let xml = parte_zip(&dati, "word/document.xml");
+    assert!(xml.contains(r#"<w:i w:val="0"/>"#), "{xml}");
+    assert!(!leggi_byte(dati).blocchi[2].run[0].corsivo);
+    // se resta corsivo basta lo stile: niente marcatura in più
+    let xml = parte_zip(&risalva(documento_impaginato(), |_| {}), "word/document.xml");
+    assert!(!xml.contains("<w:i/>") && !xml.contains("<w:i "), "{xml}");
+}
+
+#[test]
+fn modello_non_conserva_cio_che_dichiara_perso() {
+    let document = format!(
+        r#"<w:document {W}><w:body><w:p><w:pPr><w:numPr><w:numId w:val="1"/></w:numPr><w:pageBreakBefore/><w:sectPr><w:pgSz w:w="1"/></w:sectPr><w:jc w:val="right"/><w:rPr><w:ins w:id="1"/><w:color w:val="FF0000"/></w:rPr></w:pPr><w:r><w:rPr><w:u w:val="single"/><w:color w:val="00FF00"/></w:rPr><w:t>Voce</w:t></w:r></w:p><w:sectPr><w:pgSz w:w="11906"/></w:sectPr></w:body></w:document>"#
+    );
+    let xml = parte_zip(&risalva(pacchetto(&document, None, &[]), |_| {}), "word/document.xml");
+    for via in ["numPr", "pageBreakBefore", r#"w:w="1""#, "w:ins"] {
+        assert!(!xml.contains(via), "{via}: {xml}");
+    }
+    assert!(xml.contains(r#"<w:jc w:val="right"/><w:rPr><w:color w:val="FF0000"/></w:rPr>"#), "{xml}");
+    assert!(xml.contains(r#"<w:rPr><w:u w:val="single"/><w:color w:val="00FF00"/></w:rPr>"#), "{xml}");
+}
+
+#[test]
+fn modello_senza_sezione_e_con_altro_prefisso() {
+    // niente sectPr, documento in UTF-16 dichiarato: si riscrive in UTF-8
+    let document = r#"<?xml version="1.0" encoding="UTF-16"?><d:document xmlns:d="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><d:body><d:p><d:r><d:t>Altro prefisso</d:t></d:r></d:p></d:body></d:document>"#;
+    let dati = risalva(pacchetto(document, None, &[]), |b| b.push(p("Aggiunto")));
+    let xml = parte_zip(&dati, "word/document.xml");
+    assert!(xml.contains(r#"encoding="UTF-8""#), "{xml}");
+    assert_eq!(leggi_byte(dati).blocchi, vec![p("Altro prefisso"), p("Aggiunto")]);
+}
+
+#[test]
+fn file_nuovo_calibri_con_aria() {
+    let stili = parte_zip(&in_memoria(&esempio()), "word/styles.xml");
+    assert!(stili.contains(r#"w:ascii="Calibri""#), "{stili}");
+    assert!(stili.contains(r#"w:after="160" w:line="300""#), "{stili}");
+}
+
+/* ---------- sottolineato e barrato ---------- */
+
+fn decorato(testo: &str, sottolineato: bool, barrato: bool) -> Run {
+    Run { sottolineato, barrato, ..r(testo, false, false) }
+}
+
+#[test]
+fn sottolineato_e_barrato_round_trip() {
+    let blocchi = vec![Blocco::paragrafo(vec![
+        decorato("sotto", true, false),
+        decorato(" barrato", false, true),
+        decorato(" entrambi", true, true),
+        r(" niente", false, false),
+    ])];
+    let dati = in_memoria(&blocchi);
+    let xml = parte_zip(&dati, "word/document.xml");
+    assert!(xml.contains(r#"<w:rPr><w:u w:val="single"/></w:rPr>"#), "{xml}");
+    assert!(xml.contains("<w:rPr><w:strike/></w:rPr>"), "{xml}");
+    assert_eq!(leggi_byte(dati).blocchi, blocchi);
+}
+
+#[test]
+fn sottolineato_e_barrato_da_altri_programmi() {
+    let stili = r#"<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="character" w:styleId="Link"><w:name w:val="Hyperlink"/><w:rPr><w:u w:val="single"/></w:rPr></w:style></w:styles>"#;
+    let document = format!(
+        r#"<w:document {W}><w:body><w:p><w:r><w:rPr><w:u w:val="double"/></w:rPr><w:t>doppia</w:t></w:r><w:r><w:rPr><w:u w:val="none"/></w:rPr><w:t xml:space="preserve"> no</w:t></w:r><w:r><w:rPr><w:dstrike/></w:rPr><w:t xml:space="preserve"> due</w:t></w:r><w:r><w:rPr><w:strike w:val="0"/></w:rPr><w:t xml:space="preserve"> spento</w:t></w:r><w:r><w:rPr><w:rStyle w:val="Link"/></w:rPr><w:t xml:space="preserve"> stile</w:t></w:r></w:p></w:body></w:document>"#
+    );
+    let d = leggi_byte(pacchetto(&document, Some(stili), &[]));
+    assert_eq!(
+        d.blocchi,
+        vec![Blocco::paragrafo(vec![
+            decorato("doppia", true, false),
+            decorato(" no", false, false),
+            decorato(" due", false, true),
+            decorato(" spento", false, false),
+            decorato(" stile", true, false),
+        ])]
+    );
+    assert!(d.non_supportati.is_empty(), "{:?}", d.non_supportati);
+}
+
+#[test]
+fn modello_conserva_e_toglie_le_decorazioni() {
+    let stili = r#"<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="character" w:styleId="Link"><w:name w:val="Hyperlink"/><w:rPr><w:u w:val="single"/></w:rPr></w:style></w:styles>"#;
+    let document = format!(
+        r#"<w:document {W}><w:body><w:p><w:r><w:rPr><w:u w:val="double" w:color="FF0000"/></w:rPr><w:t>uno</w:t></w:r><w:r><w:rPr><w:dstrike/></w:rPr><w:t xml:space="preserve"> due</w:t></w:r><w:r><w:rPr><w:rStyle w:val="Link"/></w:rPr><w:t xml:space="preserve"> tre</w:t></w:r><w:r><w:t xml:space="preserve"> quattro</w:t></w:r></w:p></w:body></w:document>"#
+    );
+    let originale = pacchetto(&document, Some(stili), &[]);
+
+    // senza modifiche resta tutto com'era: doppia, colorata, barrato doppio
+    let xml = parte_zip(&risalva(originale.clone(), |_| {}), "word/document.xml");
+    assert!(xml.contains(r#"<w:u w:val="double" w:color="FF0000"/>"#), "{xml}");
+    assert!(xml.contains("<w:dstrike/>"), "{xml}");
+    assert!(!xml.contains("<w:strike"), "{xml}");
+    assert_eq!(xml.matches(r#"w:val="single""#).count(), 0, "lo sottolinea già lo stile: {xml}");
+
+    // tolte e messe coi comandi
+    let dati = risalva(originale, |b| {
+        b[0].run[0].sottolineato = false;
+        b[0].run[1].barrato = false;
+        b[0].run[2].sottolineato = false;
+        b[0].run[3].sottolineato = true;
+        b[0].run[3].barrato = true;
+    });
+    let xml = parte_zip(&dati, "word/document.xml");
+    assert!(!xml.contains("double"), "{xml}");
+    assert!(!xml.contains("dstrike"), "{xml}");
+    assert!(xml.contains(r#"<w:rStyle w:val="Link"/><w:u w:val="none"/>"#), "{xml}");
+    assert!(xml.contains(r#"<w:rPr><w:strike/><w:u w:val="single"/></w:rPr>"#), "{xml}");
+    let letti = &leggi_byte(dati).blocchi[0].run;
+    assert_eq!(letti.len(), 2, "{letti:?}");
+    assert_eq!(letti[0], decorato("uno due tre", false, false));
+    assert_eq!(letti[1], decorato(" quattro", true, true));
+}
+
+#[test]
+fn modello_il_testo_senza_formato_resta_senza() {
+    let document = format!(
+        r#"<w:document {W}><w:body><w:p><w:pPr><w:spacing w:after="400"/></w:pPr><w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>Rosso</w:t></w:r><w:r><w:t xml:space="preserve"> e semplice</w:t></w:r></w:p><w:p><w:r><w:t>Paragrafo semplice</w:t></w:r></w:p></w:body></w:document>"#
+    );
+    let originale = pacchetto(&document, None, &[]);
+    let xml = parte_zip(&risalva(originale.clone(), |_| {}), "word/document.xml");
+    assert_eq!(xml.matches("FF0000").count(), 1, "{xml}");
+    assert_eq!(xml.matches(r#"w:after="400""#).count(), 1, "{xml}");
+    assert!(xml.contains(r#"<w:p><w:r><w:t xml:space="preserve">Paragrafo semplice"#), "{xml}");
+
+    // il testo nuovo invece eredita: dal paragrafo prima, qui quello semplice
+    let xml = parte_zip(&risalva(originale, |b| b.push(p("Nuovo"))), "word/document.xml");
+    assert!(xml.contains(r#"<w:p><w:r><w:t xml:space="preserve">Nuovo"#), "{xml}");
 }

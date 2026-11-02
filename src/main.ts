@@ -6,12 +6,13 @@ import './styles/app.css';
 import type { EditorView } from 'prosemirror-view';
 import type { Command } from 'prosemirror-state';
 import {
-  createEditor, currentBlock, insertChar, markActive, replaceDoc, setBlock, toggleEm, toggleStrong, wrapGuillemets,
+  createEditor, currentBlock, insertChar, markActive, replaceDoc, setBlock, toggleEm, toggleStrike, toggleStrong, toggleUnderline, wrapGuillemets,
   type Block,
 } from './editor';
 import { schema } from './editor/schema';
 import { gestioneCorrettore } from './correttore';
 import { gestioneFile } from './file';
+import { gestioneIndice } from './indice';
 import { gestioneSinonimi } from './sinonimi';
 import { DEFAULTS, FONTS, fontByName, loadSettings, loadSettingsFile, saveSettings, type Font, type Settings } from './settings';
 
@@ -30,6 +31,7 @@ const view = createEditor($('#editor'), {
     const changed = v.state.doc !== lastDoc;
     if (changed) { lastDoc = v.state.doc; updateCountSoon(); file.aggiorna(); }
     spell.cambiato(changed);
+    outline.cambiato(changed);
   },
   onTypoClick: r => spell.clic(r),
 });
@@ -37,6 +39,7 @@ const view = createEditor($('#editor'), {
 /* ---------- correttore ---------- */
 const spell = gestioneCorrettore({ view, flash });
 const syn = gestioneSinonimi({ view, flash, chiudiAltri: () => spell.chiudi() });
+const outline = gestioneIndice(view);
 
 /* ---------- file ---------- */
 const file = gestioneFile({
@@ -48,6 +51,7 @@ const file = gestioneFile({
     refreshToolbar(view);
     updateCount();
     spell.ricomincia();
+    outline.aggiorna();
     scrollTo(0, 0);
   },
 });
@@ -92,12 +96,19 @@ function refreshToolbar(v: EditorView): void {
     b.classList.toggle('on', markActive(v.state, schema.marks[b.dataset.mark!])));
 }
 
+const MARK_COMMANDS: Record<string, Command> = {
+  strong: toggleStrong,
+  em: toggleEm,
+  underline: toggleUnderline,
+  strike: toggleStrike,
+};
+
 function onToolMousedown(e: MouseEvent): void {
   const b = (e.target as HTMLElement).closest('button');
   if (!b) return;
   e.preventDefault(); // non rubare il focus all'editor
   if (b.dataset.block) run(setBlock(b.dataset.block as Block));
-  else if (b.dataset.mark) run(b.dataset.mark === 'strong' ? toggleStrong : toggleEm);
+  else if (b.dataset.mark) run(MARK_COMMANDS[b.dataset.mark]);
   else if (b.dataset.char) run(insertChar(b.dataset.char));
   else if (b.id === 'b-wrap') run(wrapGuillemets);
   else if (b.id === 'b-syn') synonyms();
@@ -123,6 +134,8 @@ function applySettings(): void {
   $<HTMLInputElement>('#measure').value = String(settings.measure);
   $<HTMLInputElement>('#auto').checked = settings.auto;
   $('#zoom-val').textContent = Math.round(settings.zoom * 100) + '%';
+  document.body.classList.toggle('con-indice', settings.indice);
+  $('#b-indice').setAttribute('aria-expanded', String(settings.indice));
   updateCplSoon();
 }
 
@@ -152,7 +165,7 @@ $('#size').addEventListener('input', e => setSetting({ size: +(e.target as HTMLI
 $('#measure').addEventListener('input', e => setSetting({ measure: +(e.target as HTMLInputElement).value }));
 $('#auto').addEventListener('change', e => setSetting({ auto: (e.target as HTMLInputElement).checked }));
 $('#reset').addEventListener('click', () => {
-  setSetting({ ...DEFAULTS, zoom: settings.zoom }); // lo zoom ha già Ctrl+0
+  setSetting({ ...DEFAULTS, zoom: settings.zoom, indice: settings.indice }); // lo zoom ha già Ctrl+0
   flash('Impostazioni predefinite ripristinate');
 });
 
@@ -162,6 +175,9 @@ function toggleSettings(force?: boolean): void {
   if (!open) view.focus();
   updateCplSoon();
 }
+const toggleIndice = () => setSetting({ indice: !settings.indice });
+$('#b-indice').addEventListener('mousedown', e => e.preventDefault());
+$('#b-indice').addEventListener('click', toggleIndice);
 $('#b-settings').addEventListener('click', () => toggleSettings());
 $('#settings-close').addEventListener('click', () => toggleSettings(false));
 
@@ -213,6 +229,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (ctrl && e.key === ',') { e.preventDefault(); toggleSettings(); return; }
+  if (ctrl && e.key === '\\') { e.preventDefault(); toggleIndice(); return; }
   const key = e.key.toLowerCase();
   if (ctrl && ['n', 'o', 's'].includes(key)) {
     e.preventDefault();
@@ -317,6 +334,7 @@ loadSettingsFile().then(fromFile => {
 });
 updateCount();
 refreshToolbar(view);
+outline.aggiorna();
 file.avvia();
 spell.avvia();
 view.focus();

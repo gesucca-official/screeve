@@ -6,7 +6,7 @@ import type { Node } from 'prosemirror-model';
 import { EditorState, Plugin } from 'prosemirror-state';
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { autocorrect, type AutocorrectOptions } from './autocorrect';
-import { setBlock, toggleEm, toggleStrong, wrapGuillemets } from './commands';
+import { setBlock, toggleEm, toggleStrike, toggleStrong, toggleUnderline, wrapGuillemets } from './commands';
 import { refusi, type Intervallo } from './refusi';
 import { schema } from './schema';
 
@@ -45,6 +45,8 @@ export function createEditor(mount: HTMLElement, options: EditorOptions): Editor
         'Backspace': undoInputRule,
         'Mod-b': toggleStrong,
         'Mod-i': toggleEm,
+        'Mod-u': toggleUnderline,
+        'Shift-Mod-x': toggleStrike,
         'Mod-Alt-1': setBlock('h1'),
         'Mod-Alt-2': setBlock('h2'),
         'Mod-Alt-0': setBlock('p'),

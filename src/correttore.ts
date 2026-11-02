@@ -91,6 +91,7 @@ export function gestioneCorrettore({ view, flash }: CorrettoreOptions) {
     const n = elencoRefusi(view.state).length;
     etichetta.textContent = stato === 'attesa' ? 'dizionario…' : stato === 'assente' ? 'correttore spento'
       : n === 0 ? 'nessun refuso' : n === 1 ? '1 refuso' : `${n} refusi`;
+    if (stato !== 'assente') pulsante.title = `${etichetta.textContent}: vai al prossimo (F7)`;
     pulsante.classList.toggle('typos', stato === 'pronto' && n > 0);
     pulsante.classList.toggle('clean', stato === 'pronto' && n === 0);
   }

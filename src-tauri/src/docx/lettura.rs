@@ -1,9 +1,10 @@
 //! Lettura di docx prodotti da Word, Google Documenti, LibreOffice e Screeve stesso.
 //!
-//! Teniamo testo, paragrafi, titoli, grassetto e corsivo; il resto (tabelle, immagini,
+//! Teniamo testo, paragrafi, titoli, grassetto, corsivo, sottolineato e barrato; il resto (tabelle, immagini,
 //! note…) lo contiamo per l'avviso all'apertura. Del testo non si perde nulla di ciò
 //! che si vede: il contenuto delle tabelle diventa paragrafi, i campi il loro risultato.
 
+use super::modello::{pulisci_ppr, pulisci_rpr};
 use super::{Blocco, Documento, NonSupportato, Run};
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::name::{Namespace, ResolveResult};
@@ -23,43 +24,30 @@ const NS_M: [&str; 2] = [
 ];
 
 /// Gli elementi non supportati, nell'ordine in cui li elenca l'avviso.
-const ELEMENTI: [&str; 15] = [
+const ELEMENTI: [&str; 13] = [
     "tabelle", "immagini", "caselle", "oggetti", "formule", "note", "commenti", "revisioni",
-    "elenchi", "intestazioni", "interruzioni", "campi", "collegamenti", "sottolineature", "simboli",
+    "elenchi", "interruzioni", "campi", "collegamenti", "simboli",
 ];
 
 /// Legge un .docx.
 pub fn leggi<R: Read + Seek>(sorgente: R) -> Result<Documento, String> {
     let mut pacchetto = Pacchetto::apri(sorgente)?;
 
-    let principale = pacchetto
-        .relazioni("")
-        .into_iter()
-        .find(|(tipo, _)| tipo.ends_with("/officeDocument"))
-        .map(|(_, destinazione)| destinazione)
-        .unwrap_or_else(|| "word/document.xml".into());
+    let principale = pacchetto.principale();
     let documento = pacchetto
         .parte(&principale)?
         .ok_or("non è un documento di testo (manca word/document.xml)")?;
 
     let mut stili = Stili::default();
-    let mut conteggi = Conteggi::default();
     for (tipo, destinazione) in pacchetto.relazioni(&principale) {
-        let tipo = tipo.rsplit('/').next().unwrap_or_default();
-        if tipo == "styles" {
+        if tipo.ends_with("/styles") {
             if let Some(xml) = pacchetto.parte(&destinazione)? {
                 stili = Stili::leggi(&xml).map_err(danneggiato)?;
-            }
-        } else if tipo == "header" || tipo == "footer" {
-            if let Some(xml) = pacchetto.parte(&destinazione)? {
-                if ha_contenuto(&xml) {
-                    conteggi.aggiungi("intestazioni");
-                }
             }
         }
     }
 
-    let mut lettore = Lettore::new(&stili, conteggi);
+    let mut lettore = Lettore::new(&stili, Conteggi::default());
     lettore.leggi(&documento).map_err(danneggiato)?;
     Ok(Documento {
         blocchi: lettore.blocchi,
@@ -73,13 +61,13 @@ fn danneggiato(e: quick_xml::Error) -> String {
 
 /* ---------- pacchetto zip ---------- */
 
-struct Pacchetto<R> {
+pub(super) struct Pacchetto<R> {
     zip: ZipArchive<R>,
     nomi: HashMap<String, usize>, // i nomi delle parti non distinguono maiuscole e minuscole
 }
 
 impl<R: Read + Seek> Pacchetto<R> {
-    fn apri(sorgente: R) -> Result<Self, String> {
+    pub(super) fn apri(sorgente: R) -> Result<Self, String> {
         let zip = ZipArchive::new(sorgente).map_err(|_| {
             "non è un file .docx valido (i vecchi file .doc e i documenti protetti da password non si possono aprire)".to_string()
         })?;
@@ -91,7 +79,16 @@ impl<R: Read + Seek> Pacchetto<R> {
         Ok(Pacchetto { zip, nomi })
     }
 
-    fn parte(&mut self, nome: &str) -> Result<Option<String>, String> {
+    /// La parte principale del pacchetto, di solito word/document.xml.
+    pub(super) fn principale(&mut self) -> String {
+        self.relazioni("")
+            .into_iter()
+            .find(|(tipo, _)| tipo.ends_with("/officeDocument"))
+            .map(|(_, destinazione)| destinazione)
+            .unwrap_or_else(|| "word/document.xml".into())
+    }
+
+    pub(super) fn parte(&mut self, nome: &str) -> Result<Option<String>, String> {
         let Some(&i) = self.nomi.get(&nome.to_lowercase()) else { return Ok(None) };
         let mut byte = Vec::new();
         self.zip
@@ -102,7 +99,7 @@ impl<R: Read + Seek> Pacchetto<R> {
     }
 
     /// Le relazioni di una parte ("" per il pacchetto): (tipo, destinazione risolta).
-    fn relazioni(&mut self, parte: &str) -> Vec<(String, String)> {
+    pub(super) fn relazioni(&mut self, parte: &str) -> Vec<(String, String)> {
         let (cartella, nome) = parte.rsplit_once('/').unwrap_or(("", parte));
         let percorso = if cartella.is_empty() { format!("_rels/{nome}.rels") } else { format!("{cartella}/_rels/{nome}.rels") };
         let Ok(Some(xml)) = self.parte(&percorso) else { return Vec::new() };
@@ -160,7 +157,7 @@ fn risolvi(cartella: &str, destinazione: &str) -> String {
 }
 
 /// Valore di un attributo, cercato per nome locale (w:val e val sono lo stesso).
-fn attributo(e: &BytesStart, nome: &str) -> Option<String> {
+pub(super) fn attributo(e: &BytesStart, nome: &str) -> Option<String> {
     e.attributes()
         .flatten()
         .find(|a| a.key.local_name().as_ref() == nome)
@@ -172,27 +169,6 @@ fn acceso(e: &BytesStart) -> bool {
     !matches!(attributo(e, "val").as_deref(), Some("0" | "false" | "off"))
 }
 
-/// Un'intestazione o un piè di pagina conta solo se contiene qualcosa.
-fn ha_contenuto(xml: &str) -> bool {
-    let mut reader = Reader::from_str(xml);
-    let mut in_t = false;
-    while let Ok(evento) = reader.read_event() {
-        match evento {
-            Event::Start(e) | Event::Empty(e) => match e.local_name().as_ref() {
-                "drawing" | "pict" | "fldSimple" | "instrText" | "fldChar" => return true,
-                "t" => in_t = true,
-                _ => {}
-            },
-            Event::End(_) => in_t = false,
-            Event::Text(t) if in_t && !t.trim().is_empty() => return true,
-            Event::GeneralRef(_) if in_t => return true,
-            Event::Eof => break,
-            _ => {}
-        }
-    }
-    false
-}
-
 /* ---------- stili ---------- */
 
 #[derive(Default)]
@@ -202,10 +178,12 @@ struct Stile {
     livello_struttura: Option<u8>, // w:outlineLvl
     grassetto: Option<bool>,
     corsivo: Option<bool>,
+    sottolineato: Option<bool>,
+    barrato: Option<bool>,
 }
 
 #[derive(Default)]
-struct Stili {
+pub(super) struct Stili {
     stili: HashMap<String, Stile>,
     paragrafo_predefinito: Option<String>,
     grassetto: Option<bool>, // da docDefaults
@@ -213,7 +191,7 @@ struct Stili {
 }
 
 impl Stili {
-    fn leggi(xml: &str) -> Result<Self, quick_xml::Error> {
+    pub(super) fn leggi(xml: &str) -> Result<Self, quick_xml::Error> {
         let mut stili = Stili::default();
         let mut reader = NsReader::from_str(xml);
         reader.config_mut().expand_empty_elements = true;
@@ -262,6 +240,11 @@ impl Stili {
                                 if p == "b" { stili.grassetto = valore } else { stili.corsivo = valore }
                             }
                         }
+                        Some(p @ ("u" | "strike" | "dstrike")) if percorso(&["style", "rPr", p]) => {
+                            if let Some((_, s)) = corrente.as_mut() {
+                                if p == "u" { s.sottolineato = Some(sottolinea(&e)) } else { s.barrato = Some(acceso(&e)) }
+                            }
+                        }
                         _ => {}
                     }
                 }
@@ -280,6 +263,15 @@ impl Stili {
             }
         }
         Ok(stili)
+    }
+
+    /// L'id dello stile per un titolo nuovo: "heading N" se il file ce l'ha, altrimenti
+    /// quello che ne fa le veci ("Title", "Subtitle").
+    pub(super) fn id_titolo(&self, livello: u8) -> Option<String> {
+        let mut adatti: Vec<(&String, &Stile)> =
+            self.stili.iter().filter(|(_, s)| livello_da_nome(&s.nome) == Some(livello)).collect();
+        adatti.sort_by_key(|(id, s)| (!s.nome.to_lowercase().starts_with("heading"), *id));
+        adatti.first().map(|(id, _)| (*id).clone())
     }
 
     /// 1 = Titolo, 2 = Sottotitolo, 0 = Testo. Il livello si riconosce dal nome dello stile
@@ -314,11 +306,29 @@ impl Stili {
         (b, i)
     }
 
+    /// Sottolineato e barrato effettivi di un run: vince la formattazione diretta, poi lo
+    /// stile del carattere, poi quello del paragrafo (che nei titoli è solo aspetto).
+    pub(super) fn decorazioni(&self, run: &ProprietaRun, stile_paragrafo: Option<&str>, titolo: bool) -> (bool, bool) {
+        let da = |id: Option<&str>| {
+            let (mut u, mut s, mut id) = (None, None, id);
+            for _ in 0..32 {
+                let Some(stile) = id.and_then(|x| self.stili.get(x)) else { break };
+                u = u.or(stile.sottolineato);
+                s = s.or(stile.barrato);
+                id = stile.base.as_deref();
+            }
+            (u, s)
+        };
+        let (cu, cs) = da(run.stile.as_deref());
+        let (pu, ps) = if titolo { (None, None) } else { da(stile_paragrafo.or(self.paragrafo_predefinito.as_deref())) };
+        (run.sottolineato.or(cu).or(pu).unwrap_or(false), run.barrato.or(cs).or(ps).unwrap_or(false))
+    }
+
     /// Grassetto e corsivo effettivi di un run. La formattazione diretta vince; altrimenti
     /// stile del paragrafo e stile del carattere si combinano come in Word (si annullano
     /// a vicenda). Nei titoli lo stile del paragrafo non conta: grassetto e corsivo di un
     /// titolo sono il suo aspetto, non una marcatura del testo.
-    fn effettivi(&self, run: &ProprietaRun, stile_paragrafo: Option<&str>, titolo: bool) -> (bool, bool) {
+    pub(super) fn effettivi(&self, run: &ProprietaRun, stile_paragrafo: Option<&str>, titolo: bool) -> (bool, bool) {
         let (pb, pi) = if titolo {
             (None, None)
         } else {
@@ -332,6 +342,11 @@ impl Stili {
         };
         (run.grassetto.unwrap_or_else(|| combina(pb, cb)), run.corsivo.unwrap_or_else(|| combina(pi, ci)))
     }
+}
+
+/// <w:u/> sottolinea in qualunque stile, tranne w:val="none".
+fn sottolinea(e: &BytesStart) -> bool {
+    attributo(e, "val").is_none_or(|v| v != "none")
 }
 
 pub(super) fn livello_da_nome(nome: &str) -> Option<u8> {
@@ -385,11 +400,20 @@ impl Conteggi {
 /* ---------- documento ---------- */
 
 #[derive(Clone, Default, PartialEq)]
-struct ProprietaRun {
+pub(super) struct ProprietaRun {
     stile: Option<String>,
     grassetto: Option<bool>,
     corsivo: Option<bool>,
-    sottolineato: bool,
+    sottolineato: Option<bool>,
+    barrato: Option<bool>,
+    formato: Option<String>,
+}
+
+impl ProprietaRun {
+    /// Un run senza formattazione diretta, per sapere cosa danno i soli stili.
+    pub(super) fn di_stile(stile: Option<String>) -> Self {
+        Self { stile, ..Default::default() }
+    }
 }
 
 enum Pezzo {
@@ -402,6 +426,7 @@ struct Paragrafo {
     stile: Option<String>,
     livello_struttura: Option<u8>,
     numerato: bool,
+    formato: Option<String>,
     pezzi: Vec<Pezzo>,
 }
 
@@ -424,6 +449,7 @@ struct Lettore<'s> {
     in_t: bool,
     campi: Vec<bool>, // un elemento per campo aperto: true quando siamo nel risultato
     tabelle: usize,
+    inizio_proprieta: usize, // dove comincia l'interno del pPr o rPr aperto
 }
 
 impl<'s> Lettore<'s> {
@@ -439,6 +465,7 @@ impl<'s> Lettore<'s> {
             in_t: false,
             campi: Vec::new(),
             tabelle: 0,
+            inizio_proprieta: 0,
         }
     }
 
@@ -446,6 +473,7 @@ impl<'s> Lettore<'s> {
         let mut reader = NsReader::from_str(xml);
         reader.config_mut().expand_empty_elements = true;
         loop {
+            let prima = reader.buffer_position() as usize;
             let (ns, evento) = reader.read_resolved_event()?;
             let spazio = match &ns {
                 ResolveResult::Bound(Namespace(n)) if NS_W.contains(n) => "",
@@ -453,6 +481,7 @@ impl<'s> Lettore<'s> {
                 ResolveResult::Bound(Namespace(n)) if NS_M.contains(n) => "m:",
                 _ => "?",
             };
+            let dopo = reader.buffer_position() as usize;
             match evento {
                 Event::Start(e) => {
                     self.pila.push(format!("{spazio}{}", e.local_name().as_ref()));
@@ -461,7 +490,13 @@ impl<'s> Lettore<'s> {
                             self.salto.as_mut().unwrap().1 = Salto::Disegno { casella: true };
                         }
                         Some(_) => {}
-                        None => self.apri(&e),
+                        None => {
+                            self.apri(&e);
+                            let nome = self.pila.last().map(String::as_str);
+                            if (nome == Some("pPr") && self.sotto(&["p"])) || (nome == Some("rPr") && self.sotto(&["r"])) {
+                                self.inizio_proprieta = dopo;
+                            }
+                        }
                     }
                 }
                 Event::End(_) => {
@@ -478,7 +513,10 @@ impl<'s> Lettore<'s> {
                                 }
                             }
                         }
-                        None => self.chiudi(&nome),
+                        None => {
+                            self.proprieta_finite(&nome, xml.get(self.inizio_proprieta..prima).unwrap_or(""));
+                            self.chiudi(&nome);
+                        }
                     }
                 }
                 Event::Text(t) => self.testo(&t.xml10_content()),
@@ -520,6 +558,7 @@ impl<'s> Lettore<'s> {
                     stile: None,
                     livello_struttura: None,
                     numerato: false,
+                    formato: Some(String::new()),
                     pezzi: Vec::new(),
                 });
             }
@@ -542,7 +581,7 @@ impl<'s> Lettore<'s> {
             "sectPr" if self.sotto(&["p", "pPr"]) => self.conteggi.aggiungi("interruzioni"),
 
             "r" if self.paragrafo.is_some() && self.run.is_none() => {
-                self.run = Some((self.pila.len(), ProprietaRun::default()));
+                self.run = Some((self.pila.len(), ProprietaRun { formato: Some(String::new()), ..Default::default() }));
             }
             "rStyle" | "b" | "i" | "u" | "strike" | "dstrike" if self.sotto(&["r", "rPr"]) => {
                 if let Some((_, r)) = self.run.as_mut() {
@@ -550,8 +589,9 @@ impl<'s> Lettore<'s> {
                         "rStyle" => r.stile = attributo(e, "val"),
                         "b" => r.grassetto = Some(acceso(e)),
                         "i" => r.corsivo = Some(acceso(e)),
-                        "u" => r.sottolineato |= attributo(e, "val").is_none_or(|v| v != "none"),
-                        _ => r.sottolineato |= acceso(e),
+                        "u" => r.sottolineato = Some(sottolinea(e)),
+                        // barrato e barrato doppio sono la stessa cosa per noi
+                        _ => r.barrato = Some(r.barrato == Some(true) || acceso(e)),
                     }
                 }
             }
@@ -617,6 +657,23 @@ impl<'s> Lettore<'s> {
         }
     }
 
+    /// Alla fine di un pPr o rPr: quel che ne resta è l'aspetto originale del testo.
+    fn proprieta_finite(&mut self, nome: &str, interno: &str) {
+        match (nome, self.pila.last().map(String::as_str)) {
+            ("pPr", Some("p")) => {
+                if let Some(p) = self.paragrafo.as_mut() {
+                    p.formato = Some(pulisci_ppr(interno));
+                }
+            }
+            ("rPr", Some("r")) => {
+                if let Some((_, r)) = self.run.as_mut() {
+                    r.formato = Some(pulisci_rpr(interno));
+                }
+            }
+            _ => {}
+        }
+    }
+
     fn chiudi(&mut self, nome: &str) {
         match nome {
             "t" => self.in_t = false,
@@ -663,18 +720,15 @@ impl<'s> Lettore<'s> {
         // Un a capo manuale divide il paragrafo in due; in un titolo diventa uno spazio,
         // altrimenti un capitolo diventerebbe due.
         let mut righe: Vec<Vec<Run>> = vec![Vec::new()];
-        let mut sottolineato = false;
         for pezzo in p.pezzi {
             match pezzo {
                 Pezzo::ACapo if livello == 0 => righe.push(Vec::new()),
-                Pezzo::ACapo => aggiungi_run(righe.last_mut().unwrap(), " ", false, false),
+                Pezzo::ACapo => aggiungi_run(righe.last_mut().unwrap(), Run::new(" ", false, false)),
                 Pezzo::Testo(testo, prop) => {
-                    if prop.sottolineato && !sottolineato {
-                        self.conteggi.aggiungi("sottolineature");
-                    }
-                    sottolineato = prop.sottolineato;
                     let (b, i) = self.stili.effettivi(&prop, p.stile.as_deref(), livello > 0);
-                    aggiungi_run(righe.last_mut().unwrap(), &testo, b, i);
+                    let (sottolineato, barrato) = self.stili.decorazioni(&prop, p.stile.as_deref(), livello > 0);
+                    let run = Run { sottolineato, barrato, formato: prop.formato, ..Run::new(&testo, b, i) };
+                    aggiungi_run(righe.last_mut().unwrap(), run);
                 }
             }
         }
@@ -690,15 +744,17 @@ impl<'s> Lettore<'s> {
                     break;
                 }
             }
-            self.blocchi.push(if livello == 0 { Blocco::paragrafo(run) } else { Blocco::titolo(livello, run) });
+            let mut blocco = if livello == 0 { Blocco::paragrafo(run) } else { Blocco::titolo(livello, run) };
+            blocco.formato = p.formato.clone();
+            self.blocchi.push(blocco);
         }
     }
 }
 
 /// Aggiunge testo in coda, unendolo all'ultimo run se ha la stessa formattazione.
-fn aggiungi_run(run: &mut Vec<Run>, testo: &str, grassetto: bool, corsivo: bool) {
+fn aggiungi_run(run: &mut Vec<Run>, nuovo: Run) {
     match run.last_mut() {
-        Some(r) if r.grassetto == grassetto && r.corsivo == corsivo => r.testo.push_str(testo),
-        _ => run.push(Run::new(testo, grassetto, corsivo)),
+        Some(r) if r.stesso_aspetto(&nuovo) && r.formato == nuovo.formato => r.testo.push_str(&nuovo.testo),
+        _ => run.push(nuovo),
     }
 }

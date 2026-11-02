@@ -27,9 +27,10 @@ export interface Settings {
   measure: number;  // larghezza della colonna in em (33em ≈ 65 caratteri per riga)
   auto: boolean;    // correzioni automatiche
   zoom: number;     // 1 = 100%
+  indice: boolean;  // pannello dei titoli aperto
 }
 
-export const DEFAULTS: Readonly<Settings> = { font: 'Literata', size: 19, measure: 33, auto: true, zoom: 1 };
+export const DEFAULTS: Readonly<Settings> = { font: 'Literata', size: 19, measure: 33, auto: true, zoom: 1, indice: false };
 
 const KEY = 'screeve-settings';
 

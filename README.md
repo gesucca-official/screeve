@@ -3,10 +3,10 @@
 Editor di testo per la scrittura creativa in italiano: senza distrazioni, piacevole da guardare, leggero e portable.
 
 - Carta crema e inchiostro marrone, colonna di testo a misura d'occhio
-- Titolo, sottotitolo, grassetto e corsivo: niente di più
+- Titolo, sottotitolo, grassetto, corsivo, sottolineato e barrato: niente di più, con un indice dei titoli a lato
 - Caratteri italiani a portata di mano: È « »
 - Correttore ortografico e sinonimi in italiano, usabili da tastiera
-- File `.docx` compatibili con Word e Google Documenti
+- File `.docx` compatibili con Word e Google Documenti; un file aperto conserva la sua impaginazione
 
 ## Stato
 
