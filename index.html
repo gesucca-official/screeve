@@ -15,6 +15,7 @@
       <button role="menuitem" data-file="apri">Apri… <kbd>Ctrl+O</kbd></button>
       <button role="menuitem" data-file="salva">Salva <kbd>Ctrl+S</kbd></button>
       <button role="menuitem" data-file="salvaConNome">Salva con nome… <kbd>Ctrl+Maiusc+S</kbd></button>
+      <div class="file-recenti" id="file-recenti"></div>
     </div>
   </div>
 
@@ -74,6 +75,7 @@
   <button class="glyph" data-char="«" title="Caporale aperta — oppure scrivi &lt;&lt;">«</button>
   <button class="glyph" data-char="»" title="Caporale chiusa — oppure scrivi &gt;&gt;">»</button>
   <button class="glyph" id="b-wrap" title="Racchiudi la selezione tra caporali (Ctrl+Maiusc+')">«…»</button>
+  <button class="glyph" data-char="—" title="Lineetta di dialogo — oppure scrivi --">—</button>
 </nav>
 
 <aside class="settings" id="settings" aria-label="Impostazioni">
@@ -85,8 +87,9 @@
   <input type="range" id="size" min="15" max="26" step="0.5">
   <label for="measure">Larghezza colonna <span id="cpl"></span></label>
   <input type="range" id="measure" min="26" max="42" step="0.5">
+  <label class="check"><input type="checkbox" id="macchina"> Macchina da scrivere <small>la riga che stai scrivendo resta al centro della finestra</small></label>
   <h4>Scrittura</h4>
-  <label class="check"><input type="checkbox" id="auto"> Correzioni automatiche <small>&lt;&lt; → « &nbsp;·&nbsp; &gt;&gt; → » &nbsp;·&nbsp; E' → È</small></label>
+  <label class="check"><input type="checkbox" id="auto"> Correzioni automatiche <small>&lt;&lt; → « &nbsp;·&nbsp; &gt;&gt; → » &nbsp;·&nbsp; -- → — &nbsp;·&nbsp; E' → È</small></label>
   <button class="reset" id="reset">Ripristina predefiniti</button>
 </aside>
 
@@ -99,17 +102,18 @@
     <h3>Scrivere senza distrazioni</h3>
     <p>Mentre scrivi, le barre in alto e in basso si ritirano quasi del tutto. Basta muovere il mouse per farle tornare.</p>
     <p>La colonna di testo ha sempre la stessa larghezza, circa 65 caratteri per riga: è la misura più riposante per l'occhio. Allargando la finestra crescono i margini, non le righe.</p>
+    <p>Con la <b>macchina da scrivere</b>, dalle impostazioni, la riga che stai scrivendo resta al centro della finestra e il testo le scorre intorno. Puoi sempre scorrere a mano o selezionare col mouse: la riga torna al centro appena riprendi a scrivere o muovi il cursore coi tasti.</p>
 
     <h3>Struttura del testo</h3>
     <ul>
-      <li><b>Titolo</b> per i capitoli, <b>Sottotitolo</b> per ciò che sta sotto, <b>Testo</b> per tutto il resto. Ripremi Titolo o Sottotitolo per tornare a Testo.</li>
+      <li><b>Titolo</b> per i capitoli, <b>Sottotitolo</b> per ciò che sta sotto, <b>Testo</b> per tutto il resto. Ripremi Titolo o Sottotitolo per tornare a Testo. Una riga che cambia tipo conserva allineamento, spazi e il resto del suo aspetto nel file.</li>
       <li><b>G</b>, <b>C</b>, <b style="text-decoration: underline">S</b> e <b style="text-decoration: line-through">B</b> applicano grassetto, corsivo, sottolineato e barrato.</li>
       <li>In Word e Google Documenti i titoli diventano <i>Titolo 1</i> e <i>Titolo 2</i>: compaiono nella struttura del documento e negli indici automatici.</li>
     </ul>
 
     <h3>Caratteri italiani</h3>
-    <p>I pulsanti sul lato destro inseriscono i caratteri scomodi da trovare sulla tastiera: <span class="g">È « »</span>. Il pulsante <span class="g">«…»</span> racchiude tra caporali il testo selezionato.</p>
-    <p>Con le <b>correzioni automatiche</b> attive puoi anche scrivere <kbd>&lt;&lt;</kbd> per <span class="g">«</span>, <kbd>&gt;&gt;</kbd> per <span class="g">»</span> ed <kbd>E'</kbd> seguito da spazio per <span class="g">È</span>. Si disattivano dalle impostazioni.</p>
+    <p>I pulsanti sul lato destro inseriscono i caratteri scomodi da trovare sulla tastiera: <span class="g">È « »</span> e la lineetta di dialogo <span class="g">—</span>. Il pulsante <span class="g">«…»</span> racchiude tra caporali il testo selezionato.</p>
+    <p>Con le <b>correzioni automatiche</b> attive puoi anche scrivere <kbd>&lt;&lt;</kbd> per <span class="g">«</span>, <kbd>&gt;&gt;</kbd> per <span class="g">»</span>, <kbd>--</kbd> per <span class="g">—</span> ed <kbd>E'</kbd> seguito da spazio per <span class="g">È</span>. Si disattivano dalle impostazioni.</p>
 
     <h3>Refusi</h3>
     <ul>
@@ -127,18 +131,19 @@
     <p>Con <kbd>Ctrl</kbd>+<kbd>+</kbd> e <kbd>Ctrl</kbd>+<kbd>−</kbd> ingrandisci o rimpicciolisci tutto il testo, per esempio quando lo schermo è lontano. <kbd>Ctrl</kbd>+<kbd>0</kbd> torna al 100%. Lo zoom riguarda solo lo schermo: il documento non cambia.</p>
 
     <h3>Impostazioni</h3>
-    <p>Il pulsante con i cursori, in alto a destra, apre le impostazioni: font, dimensione di base, larghezza della colonna e correzioni automatiche. <b>Ripristina predefiniti</b> riporta tutto com'era.</p>
+    <p>Il pulsante con i cursori, in alto a destra, apre le impostazioni: font, dimensione di base, larghezza della colonna, macchina da scrivere e correzioni automatiche. <b>Ripristina predefiniti</b> riporta tutto com'era.</p>
     <p>Per cambiare aria mentre scrivi, <kbd>Ctrl</kbd>+<kbd>Maiusc</kbd>+<kbd>F</kbd> passa al font successivo senza aprire le impostazioni.</p>
 
     <h3>File</h3>
     <p>Screeve apre e salva file <b>.docx</b>, che si aprono identici in Word e Google Documenti. In alto a sinistra vedi il nome del file e se è <i>salvato</i> o <i>modificato</i>: cliccandoci sopra trovi <b>Nuovo</b>, <b>Apri</b>, <b>Salva</b> e <b>Salva con nome</b>, che hanno anche le loro scorciatoie. Prima di chiudere o di aprire un altro documento, Screeve ti chiede se vuoi salvare.</p>
+    <p>Nello stesso menu ci sono gli ultimi file aperti o salvati, il più recente in cima: passandoci sopra col mouse vedi il percorso completo. Se un file non si trova più, Screeve te lo dice e lo toglie dall'elenco.</p>
     <p>Finché ci sono modifiche non salvate, Screeve ne tiene una copia di sicurezza: se si chiude all'improvviso, alla riapertura ti propone di recuperarle. Il tuo file non viene mai toccato finché non salvi.</p>
     <p>Il font che scegli qui serve solo a schermo. Un documento nuovo si salva in Calibri a 12 punti, con interlinea ampia e un po' di spazio dopo ogni paragrafo; un documento aperto da un file conserva la sua impaginazione: font, interlinea, spazi, margini, intestazioni. Titolo e Sottotitolo diventano <i>Titolo 1</i> e <i>Titolo 2</i>.</p>
     <p>Per aprire un documento puoi anche trascinarlo sulla finestra o sull'icona di Screeve, oppure usare <i>Apri con</i> dal menu di Windows. Se contiene elementi che Screeve non gestisce, come tabelle, immagini o note, ti avvisa prima e ti propone di salvare una copia, così l'originale resta intatto.</p>
 
     <h3>Indice</h3>
     <p>Il pulsante con le righe, in alto a sinistra, apre l'elenco di titoli e sottotitoli del documento: un clic ti porta lì, e la voce evidenziata è la parte in cui stai scrivendo. Si richiude con lo stesso pulsante o con <kbd>Ctrl</kbd>+<kbd>\</kbd>.</p>
-    <p>Se il documento non ha nessun titolo vero, l'indice cerca le righe formattate a mano come titoli: brevi, con un font, un corpo o un allineamento diversi dal resto, oppure tutte in grassetto. Il documento non cambia; usa <b>Titolo</b> e <b>Sottotitolo</b> se vuoi che quelle righe siano titoli anche in Word e Google Documenti.</p>
+    <p>Se il documento non ha nessun titolo vero, l'indice cerca le righe formattate a mano come titoli: brevi, con un font, un corpo o un allineamento diversi dal resto, oppure tutte in grassetto. Il documento non cambia; usa <b>Titolo</b> e <b>Sottotitolo</b> se vuoi che quelle righe siano titoli anche in Word e Google Documenti. Appena il documento ha un titolo vero l'indice mostra solo i titoli veri: le altre righe riconosciute spariscono dall'elenco finché non trasformi anche quelle.</p>
 
     <h3>Scorciatoie</h3>
     <table>

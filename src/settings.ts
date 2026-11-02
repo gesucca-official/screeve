@@ -28,9 +28,13 @@ export interface Settings {
   auto: boolean;    // correzioni automatiche
   zoom: number;     // 1 = 100%
   indice: boolean;  // pannello dei titoli aperto
+  macchina: boolean;  // modalità macchina da scrivere: la riga corrente resta al centro
+  recenti: string[];  // percorsi dei file recenti, il più recente per primo
 }
 
-export const DEFAULTS: Readonly<Settings> = { font: 'Literata', size: 19, measure: 33, auto: true, zoom: 1, indice: false };
+export const DEFAULTS: Readonly<Settings> = { font: 'Literata', size: 19, measure: 33, auto: true, zoom: 1, indice: false, macchina: false, recenti: [] };
+
+export const MAX_RECENTI = 8;
 
 const KEY = 'screeve-settings';
 
@@ -44,6 +48,7 @@ function valid(text: string | null): Settings {
     }
   } catch { /* impostazioni illeggibili: restano i predefiniti */ }
   if (!FONTS.some(f => f.name === s.font)) s.font = DEFAULTS.font;
+  s.recenti = Array.isArray(s.recenti) ? s.recenti.filter(r => typeof r === 'string').slice(0, MAX_RECENTI) : [];
   return s;
 }
 

@@ -41,9 +41,11 @@ export interface FileOptions {
   view: EditorView;
   flash: (testo: string) => void;
   sostituisci: (doc: Node) => void;  // mette il documento nell'editor
+  ricorda: (percorso: string) => void;   // file aperto o salvato: va in cima ai recenti
+  dimentica: (percorso: string) => void; // esce dai recenti
 }
 
-export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
+export function gestioneFile({ view, flash, sostituisci, ricorda, dimentica }: FileOptions) {
   const app = isTauri();
   let percorso: string | null = null;
   let nome = 'Senza titolo';
@@ -159,6 +161,7 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
     salvato = doc;  // se nel frattempo hai scritto ancora, resta "modificato"
     daSalvare = false;
     aggiorna();
+    ricorda(dove);
     flash('Salvato');
     return true;
   }
@@ -195,7 +198,20 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
     }
     carica(aDoc(letto.blocchi), scelto);
     origine = scelto;
+    ricorda(scelto);
     if (letto.nonSupportati.length) await avvisa(letto.nonSupportati, scelto);
+  }
+
+  // Una voce dei file recenti: se il file non c'è più è inutile chiedere di salvare.
+  async function apriRecenteQui(da: string): Promise<void> {
+    if (await invoke<boolean>('file_esiste', { percorso: da })) return apriQui(da);
+    dimentica(da);
+    await chiedi(
+      `«${baseName(da)}» non si trova più`,
+      `Non è più in ${cartella(da) ?? da}: forse è stato spostato o cancellato, oppure è su un disco scollegato. L'ho tolto dai file recenti.`,
+      [{ etichetta: 'OK', valore: null }],
+      null,
+    );
   }
 
   // L'originale non si sovrascrive per sbaglio: la scelta predefinita è salvarne una copia.
@@ -272,6 +288,7 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
   return {
     nuovo: una(nuovoQui, undefined),
     apri,
+    apriRecente: una(apriRecenteQui, undefined),
     salva: una(salvaQui, false),
     salvaConNome: una(salvaConNomeQui, false),
     aggiorna,

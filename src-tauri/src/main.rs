@@ -61,6 +61,12 @@ fn file_iniziale() -> Option<String> {
     percorso.is_file().then(|| percorso.to_string_lossy().into_owned())
 }
 
+/// Una voce dei file recenti c'è ancora?
+#[tauri::command]
+fn file_esiste(percorso: String) -> bool {
+    PathBuf::from(percorso).is_file()
+}
+
 /// I refusi di ogni paragrafo; `None` finché il dizionario non è caricato.
 #[tauri::command]
 async fn controlla(testi: Vec<String>, stato: State<'_, Caricato<Correttore>>) -> Result<Option<Vec<Vec<Refuso>>>, String> {
@@ -156,6 +162,7 @@ fn main() {
             dimentica_modello,
             riprendi_modello,
             file_iniziale,
+            file_esiste,
             controlla,
             suggerisci,
             aggiungi_parola,

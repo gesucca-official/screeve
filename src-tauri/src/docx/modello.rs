@@ -4,12 +4,15 @@
 //! così sopravvive anche la formattazione diretta, che Google Documenti usa ovunque.
 //! `Some("")` è testo del file senza proprietà proprie e resta così; `None` è testo
 //! nuovo, e prende l'aspetto di ciò che ha intorno.
+//! Un blocco che ha cambiato tipo nell'editor (Testo → Titolo e ritorno) tiene il suo
+//! `formato` così com'era: lo stile adatto si sistema qui, a ogni salvataggio.
 
 use super::lettura::{attributo, Pacchetto, ProprietaRun, Stili};
 use super::scrittura::{run, INTESTAZIONE, STILE_TITOLO_1, STILE_TITOLO_2};
 use super::{Blocco, Run};
 use quick_xml::events::Event;
 use quick_xml::Reader;
+use std::borrow::Cow;
 use std::io::{Cursor, Seek, Write};
 use zip::write::{SimpleFileOptions, ZipWriter};
 use zip::{CompressionMethod, ZipArchive};
@@ -88,24 +91,34 @@ impl Modello {
         let mut s = String::with_capacity(self.apertura.len() + self.coda.len() + blocchi.len() * 300);
         s.push_str(&self.apertura);
         let mut stili_mancanti = false;
-        // un paragrafo nuovo (o tornato a Testo) prende l'aspetto di quello che lo precede
-        let mut riferimento = blocchi.iter().find(|b| b.livello_titolo() == 0 && b.formato.is_some());
+        // un paragrafo nuovo prende l'aspetto di quello che lo precede; un titolo tornato
+        // a Testo no: il suo aspetto non è quello del testo
+        let di_testo = |b: &&Blocco| b.livello_titolo() == 0 && b.formato.as_deref().is_some_and(|f| self.livello_di(f) == 0);
+        let mut riferimento = blocchi.iter().find(di_testo);
         for b in blocchi {
-            let titolo = b.livello_titolo() > 0;
-            if !titolo && b.formato.is_some() {
+            let livello = b.livello_titolo();
+            let titolo = livello > 0;
+            if di_testo(&b) {
                 riferimento = Some(b);
             }
-            let id_titolo;
-            let ppr: Option<&str> = match (&b.formato, titolo) {
-                (Some(f), _) => Some(f),
-                (None, true) => {
-                    let id = self.stili.id_titolo(b.livello_titolo());
+            let formato_riferimento = riferimento.and_then(|r| r.formato.as_deref());
+            let ppr: Option<Cow<str>> = match b.formato.as_deref() {
+                // il tipo è quello che il formato dice: resta com'è
+                Some(f) if self.livello_di(f) == livello => Some(Cow::Borrowed(f)),
+                f if titolo => {
+                    let id = self.stili.id_titolo(livello);
                     stili_mancanti |= id.is_none();
-                    id_titolo = format!(r#"<w:pStyle w:val="{}"/>"#, id.unwrap_or(format!("Heading{}", b.livello_titolo())));
-                    Some(&id_titolo)
+                    let id = id.unwrap_or(format!("Heading{livello}"));
+                    Some(Cow::Owned(con_stile(f.unwrap_or(""), Some(&id))))
                 }
-                (None, false) => riferimento.and_then(|r| r.formato.as_deref()),
+                // un titolo tornato a Testo: le sue proprietà con lo stile del testo vicino
+                Some(f) if !con_stile(f, None).is_empty() => {
+                    let stile = formato_riferimento.and_then(|r| valore_figlio(r, "pStyle"));
+                    Some(Cow::Owned(con_stile(f, stile.as_deref())))
+                }
+                _ => formato_riferimento.map(Cow::Borrowed),
             };
+            let ppr = ppr.as_deref();
             let stile_paragrafo = ppr.and_then(|p| valore_figlio(p, "pStyle"));
             let formato_run = |b: &Blocco| b.run.iter().find_map(|r| r.formato.clone());
             let predefinito = formato_run(b).or_else(|| if titolo { None } else { riferimento.and_then(formato_run) });
@@ -127,6 +140,12 @@ impl Modello {
         }
         s.push_str(&self.coda);
         (s, stili_mancanti)
+    }
+
+    /// Il livello di titolo che queste proprietà danno a un paragrafo, come in lettura.
+    fn livello_di(&self, ppr: &str) -> u8 {
+        let struttura = valore_figlio(ppr, "outlineLvl").and_then(|v| v.parse().ok());
+        self.stili.livello_paragrafo(valore_figlio(ppr, "pStyle").as_deref(), struttura)
     }
 
     fn con_stili_titolo(&self) -> String {
@@ -184,6 +203,15 @@ fn proprieta_run(formato: &str, r: &Run, (base_b, base_i): (bool, bool), (base_u
     if !ha_u && r.sottolineato != base_u {
         s.push_str(if r.sottolineato { r#"<w:u w:val="single"/>"# } else { r#"<w:u w:val="none"/>"# });
     }
+    s
+}
+
+/// L'interno di <w:pPr> con un altro stile al posto del suo (w:pStyle deve restare il
+/// primo figlio). Via anche un outlineLvl diretto, che farebbe il titolo o il testo al
+/// posto dello stile.
+fn con_stile(ppr: &str, stile: Option<&str>) -> String {
+    let mut s = stile.map_or(String::new(), |id| format!(r#"<w:pStyle w:val="{id}"/>"#));
+    figli(ppr).into_iter().filter(|(n, _)| n != "pStyle" && n != "outlineLvl").for_each(|(_, x)| s.push_str(x));
     s
 }
 

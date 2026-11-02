@@ -13,8 +13,9 @@ import { schema } from './editor/schema';
 import { gestioneCorrettore } from './correttore';
 import { gestioneFile } from './file';
 import { gestioneIndice } from './indice';
+import { gestioneMacchina } from './macchina';
 import { gestioneSinonimi } from './sinonimi';
-import { DEFAULTS, FONTS, fontByName, loadSettings, loadSettingsFile, saveSettings, type Font, type Settings } from './settings';
+import { DEFAULTS, FONTS, MAX_RECENTI, fontByName, loadSettings, loadSettingsFile, saveSettings, type Font, type Settings } from './settings';
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
 const root = document.documentElement.style;
@@ -32,14 +33,16 @@ const view = createEditor($('#editor'), {
     if (changed) { lastDoc = v.state.doc; updateCountSoon(); file.aggiorna(); }
     spell.cambiato(changed);
     outline.cambiato(changed);
+    macchina.cambiato(changed);
   },
   onTypoClick: r => spell.clic(r),
 });
 
 /* ---------- correttore ---------- */
-const spell = gestioneCorrettore({ view, flash });
+const spell = gestioneCorrettore({ view, flash, mostra: () => macchina.centra() });
 const syn = gestioneSinonimi({ view, flash, chiudiAltri: () => spell.chiudi() });
 const outline = gestioneIndice(view);
+const macchina = gestioneMacchina(view, () => settings.macchina);
 
 /* ---------- file ---------- */
 const file = gestioneFile({
@@ -53,8 +56,36 @@ const file = gestioneFile({
     spell.ricomincia();
     outline.aggiorna();
     scrollTo(0, 0);
+    macchina.centra();
   },
+  ricorda: p => cambiaRecenti(lista => [p, ...lista.filter(r => !stessoFile(r, p))]),
+  dimentica: p => cambiaRecenti(lista => lista.filter(r => !stessoFile(r, p))),
 });
+
+/* ---------- file recenti ---------- */
+// le maiuscole non contano nei percorsi di Windows
+const stessoFile = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+// Parte da ciò che c'è in screeve.json: un'altra finestra può averlo aggiornato.
+async function cambiaRecenti(cambia: (lista: string[]) => string[]): Promise<void> {
+  const lista = (await loadSettingsFile())?.recenti ?? settings.recenti;
+  setSetting({ recenti: cambia(lista).slice(0, MAX_RECENTI) });
+}
+
+function disegnaRecenti(): void {
+  const voci = settings.recenti.map(p => {
+    const b = document.createElement('button');
+    b.setAttribute('role', 'menuitem');
+    b.className = 'recente';
+    b.dataset.recente = p;
+    b.title = p;
+    b.textContent = p.split(/[\\/]/).pop() || p;
+    return b;
+  });
+  const titolo = document.createElement('small');
+  titolo.textContent = 'Recenti';
+  $('#file-recenti').replaceChildren(...(voci.length ? [titolo, ...voci] : []));
+}
 
 /* ---------- menu File, sul nome del file ---------- */
 const fileMenu = $('#file-menu');
@@ -70,10 +101,11 @@ function toggleFileMenu(force?: boolean): void {
 }
 $('#file-name').addEventListener('click', () => toggleFileMenu());
 fileMenu.addEventListener('click', e => {
-  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-file]');
+  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-file], [data-recente]');
   if (!b) return;
   toggleFileMenu(false);
-  file[b.dataset.file as 'nuovo' | 'apri' | 'salva' | 'salvaConNome']();
+  if (b.dataset.recente) file.apriRecente(b.dataset.recente);
+  else file[b.dataset.file as 'nuovo' | 'apri' | 'salva' | 'salvaConNome']();
 });
 fileMenu.addEventListener('keydown', e => {
   if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
@@ -136,6 +168,12 @@ function applySettings(): void {
   $('#zoom-val').textContent = Math.round(settings.zoom * 100) + '%';
   document.body.classList.toggle('con-indice', settings.indice);
   $('#b-indice').setAttribute('aria-expanded', String(settings.indice));
+  $<HTMLInputElement>('#macchina').checked = settings.macchina;
+  // appena accesa va subito al centro: i margini in cima e in fondo sono già cambiati
+  const accesa = !document.body.classList.contains('macchina') && settings.macchina;
+  document.body.classList.toggle('macchina', settings.macchina);
+  if (accesa) macchina.centra();
+  disegnaRecenti();
   updateCplSoon();
 }
 
@@ -143,6 +181,7 @@ function setSetting(patch: Partial<Settings>): void {
   Object.assign(settings, patch);
   saveSettings(settings);
   applySettings();
+  if (['font', 'size', 'measure', 'zoom'].some(k => k in patch)) macchina.ricentra();
 }
 
 $('#fonts').innerHTML = FONTS.map(f =>
@@ -164,8 +203,9 @@ $('#fonts').addEventListener('click', e => {
 $('#size').addEventListener('input', e => setSetting({ size: +(e.target as HTMLInputElement).value }));
 $('#measure').addEventListener('input', e => setSetting({ measure: +(e.target as HTMLInputElement).value }));
 $('#auto').addEventListener('change', e => setSetting({ auto: (e.target as HTMLInputElement).checked }));
+$('#macchina').addEventListener('change', e => setSetting({ macchina: (e.target as HTMLInputElement).checked }));
 $('#reset').addEventListener('click', () => {
-  setSetting({ ...DEFAULTS, zoom: settings.zoom, indice: settings.indice }); // lo zoom ha già Ctrl+0
+  setSetting({ ...DEFAULTS, zoom: settings.zoom, indice: settings.indice, recenti: settings.recenti }); // lo zoom ha già Ctrl+0
   flash('Impostazioni predefinite ripristinate');
 });
 
@@ -325,16 +365,17 @@ function updateCplSoon(): void {
   }, 320);
 }
 addEventListener('resize', updateCplSoon);
+addEventListener('resize', () => macchina.ricentra());
 
 applySettings();
 // screeve.json vale più della copia nel localStorage; se non c'è ancora, lo si crea
+// e prima delle impostazioni non si apre nulla: i file recenti partono da lì
 loadSettingsFile().then(fromFile => {
   if (!fromFile) saveSettings(settings);
   else if (JSON.stringify(fromFile) !== JSON.stringify(settings)) setSetting(fromFile);
-});
+}).finally(() => file.avvia());
 updateCount();
 refreshToolbar(view);
 outline.aggiorna();
-file.avvia();
 spell.avvia();
 view.focus();

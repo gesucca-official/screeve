@@ -698,3 +698,171 @@ fn modello_il_testo_senza_formato_resta_senza() {
     let xml = parte_zip(&risalva(originale, |b| b.push(p("Nuovo"))), "word/document.xml");
     assert!(xml.contains(r#"<w:p><w:r><w:t xml:space="preserve">Nuovo"#), "{xml}");
 }
+
+/* ---------- blocchi che cambiano tipo: il formato resta, cambia lo stile ---------- */
+
+const STILI_TIPI: &str = r#"<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="paragraph" w:default="1" w:styleId="Normale"><w:name w:val="Normal"/></w:style><w:style w:type="paragraph" w:styleId="Titolo1"><w:name w:val="heading 1"/><w:basedOn w:val="Normale"/></w:style><w:style w:type="paragraph" w:styleId="Titolo2"><w:name w:val="heading 2"/><w:basedOn w:val="Normale"/></w:style><w:style w:type="paragraph" w:styleId="TitoloDoc"><w:name w:val="Title"/></w:style><w:style w:type="paragraph" w:styleId="Corpo"><w:name w:val="Body Text"/></w:style></w:styles>"#;
+
+fn documento_tipi() -> Vec<u8> {
+    let document = format!(
+        r#"<w:document {W}><w:body>
+<w:p><w:pPr><w:spacing w:before="600"/><w:jc w:val="center"/><w:rPr><w:color w:val="FF0000"/></w:rPr></w:pPr><w:r><w:rPr><w:sz w:val="40"/></w:rPr><w:t>Riga a mano</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="Corpo"/><w:ind w:firstLine="284"/></w:pPr><w:r><w:t>Con il suo stile</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="Titolo1"/><w:jc w:val="right"/></w:pPr><w:r><w:t>Titolo allineato</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="Titolo1"/></w:pPr><w:r><w:t>Titolo semplice</w:t></w:r></w:p>
+<w:p><w:r><w:t>Senza formato</w:t></w:r></w:p>
+<w:p><w:pPr><w:outlineLvl w:val="0"/><w:jc w:val="right"/></w:pPr><w:r><w:t>Titolo per struttura</w:t></w:r></w:p>
+<w:p><w:pPr><w:pStyle w:val="TitoloDoc"/><w:jc w:val="center"/></w:pPr><w:r><w:t>Titolo del documento</w:t></w:r></w:p>
+<w:p><w:pPr><w:outlineLvl w:val="9"/><w:ind w:left="100"/></w:pPr><w:r><w:t>Corpo per struttura</w:t></w:r></w:p>
+</w:body></w:document>"#
+    );
+    pacchetto(&document, Some(STILI_TIPI), &[])
+}
+
+/// Cambia il tipo come fa l'editor: `formato` non si tocca.
+fn a_titolo(b: &mut Blocco, livello: u8) {
+    b.tipo = Tipo::Titolo;
+    b.livello = livello;
+}
+
+fn a_testo(b: &mut Blocco) {
+    b.tipo = Tipo::Paragrafo;
+    b.livello = 0;
+}
+
+/// L'XML del paragrafo con questo testo, fino al testo.
+fn paragrafo_con<'a>(xml: &'a str, testo: &str) -> &'a str {
+    let i = xml.find(testo).unwrap_or_else(|| panic!("{testo}: {xml}"));
+    &xml[xml[..i].rfind("<w:p>").unwrap()..i]
+}
+
+#[test]
+fn tipo_riga_a_mano_diventa_titolo_e_tiene_le_proprieta() {
+    let dati = risalva(documento_tipi(), |b| a_titolo(&mut b[0], 1));
+    let xml = parte_zip(&dati, "word/document.xml");
+    let riga = paragrafo_con(&xml, "Riga a mano");
+    assert!(
+        riga.contains(r#"<w:pPr><w:pStyle w:val="Titolo1"/><w:spacing w:before="600"/><w:jc w:val="center"/><w:rPr><w:color w:val="FF0000"/></w:rPr></w:pPr>"#),
+        "{riga}"
+    );
+    assert!(riga.contains(r#"<w:sz w:val="40"/>"#), "{riga}");
+    let letto = &leggi_byte(dati).blocchi[0];
+    assert_eq!((letto.tipo, letto.livello), (Tipo::Titolo, 1));
+}
+
+#[test]
+fn tipo_lo_stile_si_sostituisce_e_non_si_duplica() {
+    let dati = risalva(documento_tipi(), |b| a_titolo(&mut b[1], 2));
+    let xml = parte_zip(&dati, "word/document.xml");
+    let riga = paragrafo_con(&xml, "Con il suo stile");
+    assert!(riga.contains(r#"<w:pPr><w:pStyle w:val="Titolo2"/><w:ind w:firstLine="284"/></w:pPr>"#), "{riga}");
+    assert_eq!(riga.matches("w:pStyle").count(), 1, "{riga}");
+    assert!(!xml.contains(r#"w:val="Corpo""#), "{xml}");
+    assert_eq!(leggi_byte(dati).blocchi[1].livello, 2);
+}
+
+#[test]
+fn tipo_senza_formato_proprio_diventa_titolo() {
+    // testo del file senza proprietà (stringa vuota): solo lo stile
+    let dati = risalva(documento_tipi(), |b| a_titolo(&mut b[4], 1));
+    let xml = parte_zip(&dati, "word/document.xml");
+    let riga = paragrafo_con(&xml, "Senza formato");
+    assert!(riga.contains(r#"<w:pPr><w:pStyle w:val="Titolo1"/></w:pPr>"#), "{riga}");
+}
+
+#[test]
+fn tipo_il_file_senza_stile_di_titolo_lo_riceve() {
+    let document = format!(r#"<w:document {W}><w:body><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>Riga</w:t></w:r></w:p></w:body></w:document>"#);
+    let stili = r#"<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="paragraph" w:default="1" w:styleId="Normale"><w:name w:val="Normal"/></w:style></w:styles>"#;
+    let dati = risalva(pacchetto(&document, Some(stili), &[]), |b| a_titolo(&mut b[0], 1));
+    let xml = parte_zip(&dati, "word/document.xml");
+    assert!(xml.contains(r#"<w:pStyle w:val="Heading1"/><w:jc w:val="center"/>"#), "{xml}");
+    assert!(parte_zip(&dati, "word/styles.xml").contains(r#"w:styleId="Heading1""#));
+    assert_eq!(leggi_byte(dati).blocchi[0].livello, 1);
+}
+
+#[test]
+fn tipo_un_titolo_torna_a_testo_e_tiene_le_proprieta() {
+    // prende lo stile del testo che lo precede, qui Corpo
+    let dati = risalva(documento_tipi(), |b| a_testo(&mut b[2]));
+    let xml = parte_zip(&dati, "word/document.xml");
+    let riga = paragrafo_con(&xml, "Titolo allineato");
+    assert!(riga.contains(r#"<w:pPr><w:pStyle w:val="Corpo"/><w:jc w:val="right"/></w:pPr>"#), "{riga}");
+    assert_eq!(leggi_byte(dati).blocchi[2].tipo, Tipo::Paragrafo);
+}
+
+#[test]
+fn tipo_un_titolo_senza_altre_proprieta_torna_a_testo_ed_eredita() {
+    let dati = risalva(documento_tipi(), |b| a_testo(&mut b[3]));
+    let xml = parte_zip(&dati, "word/document.xml");
+    let riga = paragrafo_con(&xml, "Titolo semplice");
+    assert!(riga.contains(r#"<w:pPr><w:pStyle w:val="Corpo"/><w:ind w:firstLine="284"/></w:pPr>"#), "{riga}");
+    assert_eq!(leggi_byte(dati).blocchi[3].tipo, Tipo::Paragrafo);
+}
+
+#[test]
+fn tipo_un_titolo_tornato_a_testo_non_fa_da_riferimento() {
+    let dati = risalva(documento_tipi(), |b| {
+        a_testo(&mut b[2]);
+        b.insert(3, p("Scritto adesso"));
+    });
+    let xml = parte_zip(&dati, "word/document.xml");
+    let nuovo = paragrafo_con(&xml, "Scritto adesso");
+    assert!(nuovo.contains(r#"<w:pStyle w:val="Corpo"/><w:ind w:firstLine="284"/>"#), "{nuovo}");
+    assert!(!nuovo.contains("w:jc"), "{nuovo}");
+}
+
+#[test]
+fn tipo_outline_diretto_non_contraddice_il_nuovo_tipo() {
+    // un titolo per outlineLvl che torna a testo non deve rileggersi titolo
+    let dati = risalva(documento_tipi(), |b| a_testo(&mut b[5]));
+    let xml = parte_zip(&dati, "word/document.xml");
+    let riga = paragrafo_con(&xml, "Titolo per struttura");
+    assert!(!riga.contains("outlineLvl"), "{riga}");
+    assert!(riga.contains(r#"<w:jc w:val="right"/>"#), "{riga}");
+    assert_eq!(leggi_byte(dati).blocchi[5].tipo, Tipo::Paragrafo);
+
+    // né un outlineLvl 9 (corpo del testo) deve annullare il titolo nuovo
+    let dati = risalva(documento_tipi(), |b| a_titolo(&mut b[7], 1));
+    let xml = parte_zip(&dati, "word/document.xml");
+    let riga = paragrafo_con(&xml, "Corpo per struttura");
+    assert!(riga.contains(r#"<w:pPr><w:pStyle w:val="Titolo1"/><w:ind w:left="100"/></w:pPr>"#), "{riga}");
+    assert_eq!(leggi_byte(dati).blocchi[7].livello, 1);
+}
+
+#[test]
+fn tipo_da_titolo_a_sottotitolo() {
+    let dati = risalva(documento_tipi(), |b| a_titolo(&mut b[2], 2));
+    let xml = parte_zip(&dati, "word/document.xml");
+    let riga = paragrafo_con(&xml, "Titolo allineato");
+    assert!(riga.contains(r#"<w:pPr><w:pStyle w:val="Titolo2"/><w:jc w:val="right"/></w:pPr>"#), "{riga}");
+    assert_eq!(leggi_byte(dati).blocchi[2].livello, 2);
+}
+
+#[test]
+fn tipo_i_titoli_gia_tali_non_cambiano() {
+    let xml = parte_zip(&risalva(documento_tipi(), |_| {}), "word/document.xml");
+    // anche con uno stile diverso da quello che userebbe un titolo nuovo, o senza stile
+    assert!(xml.contains(r#"<w:pPr><w:pStyle w:val="TitoloDoc"/><w:jc w:val="center"/></w:pPr>"#), "{xml}");
+    assert!(xml.contains(r#"<w:pPr><w:outlineLvl w:val="0"/><w:jc w:val="right"/></w:pPr>"#), "{xml}");
+    assert!(xml.contains(r#"<w:pPr><w:outlineLvl w:val="9"/><w:ind w:left="100"/></w:pPr>"#), "{xml}");
+    assert!(xml.contains(r#"<w:pPr><w:pStyle w:val="Titolo1"/><w:jc w:val="right"/></w:pPr>"#), "{xml}");
+}
+
+#[test]
+fn tipo_andata_e_ritorno_non_cambia_nulla() {
+    // nell'editor il formato resta quello originale: tornare al tipo di partenza è non aver fatto nulla
+    let originale = documento_tipi();
+    let fermo = parte_zip(&risalva(originale.clone(), |_| {}), "word/document.xml");
+    let dati = risalva(originale, |b| {
+        a_titolo(&mut b[1], 1);
+        a_testo(&mut b[1]);
+        a_testo(&mut b[2]);
+        a_titolo(&mut b[2], 1);
+    });
+    assert_eq!(parte_zip(&dati, "word/document.xml"), fermo);
+    // e risalvare ciò che si è appena salvato non sposta niente
+    let una = risalva(documento_tipi(), |b| a_titolo(&mut b[0], 1));
+    let due = risalva(una.clone(), |_| {});
+    assert_eq!(parte_zip(&una, "word/document.xml"), parte_zip(&due, "word/document.xml"));
+}

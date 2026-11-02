@@ -148,7 +148,10 @@ export function gestioneIndice(view: EditorView) {
     const { state } = view;
     view.dispatch(state.tr.setSelection(TextSelection.create(state.doc, v.pos + 1)));
     view.focus();
-    scrollBy({ top: view.coordsAtPos(v.pos + 1).top - SOPRA, behavior: 'smooth' });
+    const riga = view.coordsAtPos(v.pos + 1);
+    // in modalità macchina da scrivere la riga corrente sta al centro, non in alto
+    const sopra = document.body.classList.contains('macchina') ? innerHeight / 2 - (riga.bottom - riga.top) / 2 : SOPRA;
+    scrollBy({ top: riga.top - sopra, behavior: 'smooth' });
   });
 
   return {

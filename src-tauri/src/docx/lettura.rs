@@ -274,6 +274,11 @@ impl Stili {
         adatti.first().map(|(id, _)| (*id).clone())
     }
 
+    /// Il livello di un paragrafo: un outlineLvl diretto vale più del suo stile.
+    pub(super) fn livello_paragrafo(&self, stile: Option<&str>, struttura: Option<u8>) -> u8 {
+        struttura.map_or_else(|| self.livello(stile), da_struttura)
+    }
+
     /// 1 = Titolo, 2 = Sottotitolo, 0 = Testo. Il livello si riconosce dal nome dello stile
     /// (gli id possono essere localizzati, "Titolo1"), poi da outlineLvl, poi dallo stile di base.
     fn livello(&self, id: Option<&str>) -> u8 {
@@ -709,10 +714,7 @@ impl<'s> Lettore<'s> {
     }
 
     fn paragrafo_finito(&mut self, p: Paragrafo) {
-        let livello = match p.livello_struttura {
-            Some(l) => da_struttura(l),
-            None => self.stili.livello(p.stile.as_deref()),
-        };
+        let livello = self.stili.livello_paragrafo(p.stile.as_deref(), p.livello_struttura);
         if p.numerato {
             self.conteggi.aggiungi("elenchi");
         }

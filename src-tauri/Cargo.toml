@@ -1,6 +1,6 @@
 [package]
 name = "screeve"
-version = "0.1.0"
+version = "1.0.0"
 description = "Editor per la scrittura creativa in italiano"
 edition = "2021"
 
