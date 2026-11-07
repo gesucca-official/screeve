@@ -19,9 +19,10 @@ const ATTESA = 350;  // ms dopo l'ultima modifica
 export interface CorrettoreOptions {
   view: EditorView;
   flash: (testo: string) => void;
+  mostra: () => void;  // F7 ha portato il cursore su un refuso
 }
 
-export function gestioneCorrettore({ view, flash }: CorrettoreOptions) {
+export function gestioneCorrettore({ view, flash, mostra }: CorrettoreOptions) {
   const app = isTauri();
   // i nodi di ProseMirror sono immutabili: un paragrafo non cambiato è lo stesso
   // oggetto, quindi si ricontrollano solo quelli nuovi
@@ -92,6 +93,7 @@ export function gestioneCorrettore({ view, flash }: CorrettoreOptions) {
     const n = elencoRefusi(view.state).length;
     etichetta.textContent = stato === 'attesa' ? 'dizionario…' : stato === 'assente' ? 'correttore spento'
       : n === 0 ? 'nessun refuso' : n === 1 ? '1 refuso' : `${n} refusi`;
+    if (stato !== 'assente') pulsante.title = `${etichetta.textContent}: vai al prossimo (F7)`;
     pulsante.classList.toggle('typos', stato === 'pronto' && n > 0);
     pulsante.classList.toggle('clean', stato === 'pronto' && n === 0);
   }
@@ -222,6 +224,7 @@ export function gestioneCorrettore({ view, flash }: CorrettoreOptions) {
     const r = tutti.find(x => x.from > da) ?? tutti[0];
     view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, r.from, r.to)).scrollIntoView());
     view.focus();
+    mostra();
     await apri(r);
   }
 

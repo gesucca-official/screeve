@@ -3,14 +3,15 @@
 Editor di testo per la scrittura creativa in italiano: senza distrazioni, piacevole da guardare, leggero e portable.
 
 - Carta crema e inchiostro marrone, colonna di testo a misura d'occhio
-- Titolo, sottotitolo, grassetto e corsivo: niente di più
-- Caratteri italiani a portata di mano: È « »
+- Titolo, sottotitolo, grassetto, corsivo, sottolineato e barrato: niente di più, con un indice dei titoli a lato
+- Caratteri italiani a portata di mano: È « » e la lineetta di dialogo —
+- Modalità macchina da scrivere: la riga corrente resta al centro della finestra
 - Correttore ortografico e sinonimi in italiano, usabili da tastiera
-- File `.docx` compatibili con Word e Google Documenti
+- File `.docx` compatibili con Word e Google Documenti; un file aperto conserva la sua impaginazione
 
 ## Stato
 
-In sviluppo. Già pronti l'editor (fase 2: titolo, sottotitolo, grassetto e corsivo, caratteri italiani e correzioni automatiche, zoom, impostazioni con cinque font inclusi e guida, F1), i file `.docx` (fase 3: Nuovo, Apri, Salva e Salva con nome, dal menu sul nome del file o da tastiera, apertura dei documenti di Word, Google Documenti e LibreOffice con avviso su ciò che Screeve non gestisce) il correttore ortografico (fase 4: refusi sottolineati, F7, Alt+Invio, dizionario personale) i sinonimi (fase 5: Maiusc+F7, anche dalle forme flesse) e buona parte della rifinitura (fase 6: copia di sicurezza e recupero dopo un crash, impostazioni portable in `screeve.json`, zip di distribuzione). Mancano file recenti e firma dell'eseguibile.
+Versione 1.0.0. Ci sono l'editor (fase 2: titolo, sottotitolo, grassetto e corsivo, caratteri italiani e correzioni automatiche, zoom, impostazioni con cinque font inclusi e guida, F1), i file `.docx` (fase 3: Nuovo, Apri, Salva e Salva con nome, dal menu sul nome del file o da tastiera, apertura dei documenti di Word, Google Documenti e LibreOffice con avviso su ciò che Screeve non gestisce) il correttore ortografico (fase 4: refusi sottolineati, F7, Alt+Invio, dizionario personale) i sinonimi (fase 5: Maiusc+F7, anche dalle forme flesse) e buona parte della rifinitura (fase 6: copia di sicurezza e recupero dopo un crash, impostazioni portable in `screeve.json`, zip di distribuzione, file recenti). Manca la firma dell'eseguibile.
 
 Il mockup interattivo è in [`mockup/index.html`](mockup/index.html) (si apre direttamente nel browser), il piano di implementazione in [`PIANO.md`](PIANO.md).
 
@@ -26,7 +27,7 @@ Requisiti (Windows e macOS): [Node.js](https://nodejs.org) 20+, [Rust](https://r
 npm install
 npm run app:dev      # app in modalità sviluppo, con ricarica automatica
 npm run app:build    # eseguibile portable in src-tauri/target/release/screeve.exe, con accanto la cartella dizionari/
-npm run app:pacchetto  # build e poi lo zip da distribuire, con le licenze, in src-tauri/target/pacchetto/
+npm run app:pacchetto  # build e poi lo zip da distribuire, con le licenze, in src-tauri/target/pacchetto/Screeve-1.0.0.zip
 ```
 
 Su macOS si costruisce `Screeve.app` (con i dizionari nelle risorse del bundle, firmato ad-hoc) e poi lo zip:

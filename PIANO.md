@@ -16,7 +16,7 @@ Mockup interattivo: [mockup/index.html](mockup/index.html).
 |---|---|---|
 | Shell desktop | **Tauri 2** (Rust) | Un solo `.exe` di ~8 MB, usa WebView2 già presente in Windows 10/11. Electron peserebbe ~150 MB. |
 | Interfaccia | **TypeScript + Vite**, nessun framework | L'UI è una barra e una pagina: un framework sarebbe solo peso. |
-| Editor | **ProseMirror** | Modello documento rigoroso: lo schema ammette *solo* ciò che il docx sa rappresentare (titolo, sottotitolo, paragrafo, grassetto, corsivo), quindi nessuna formattazione "orfana" può nascere. Undo/redo, input rules e decorazioni (per i refusi) già pronti. `contenteditable` puro (come nel mockup) non è affidabile per un editor vero. |
+| Editor | **ProseMirror** | Modello documento rigoroso: lo schema ammette *solo* ciò che il docx sa rappresentare (titolo, sottotitolo, paragrafo, grassetto, corsivo, sottolineato, barrato), quindi nessuna formattazione "orfana" può nascere. Undo/redo, input rules e decorazioni (per i refusi) già pronti. `contenteditable` puro (come nel mockup) non è affidabile per un editor vero. |
 | Correttore | **spellbook** (crate Rust, compatibile Hunspell) + dizionario **it_IT** di LibreOffice | Veloce e nativo. In JS (nspell) il dizionario italiano è notoriamente lento e pesante in memoria. |
 | DOCX | Scrittura e lettura **in Rust** con `zip` + `quick-xml`, OOXML generato a mano | Lo schema è minuscolo: generare noi l'XML ci dà il controllo totale su ciò che finisce nel file, quindi la compatibilità è garantita e testabile. |
 | Font | File WOFF2 **inclusi** nell'eseguibile (licenza OFL), dai pacchetti **Fontsource** | Niente rete, aspetto identico ovunque. Solo i sottoinsiemi latin e latin-ext (`scripts/genera-font.mjs` → `src/styles/fonts.css`). |
@@ -37,6 +37,8 @@ Alternative scartate: Electron (troppo pesante), Wails/Go (valido, ma l'ecosiste
 | Testo | `paragraph` | `Normal` | Testo normale |
 | Grassetto | mark `strong` | `<w:b/>` | Grassetto |
 | Corsivo | mark `em` | `<w:i/>` | Corsivo |
+| Sottolineato | mark `underline` | `<w:u w:val="single"/>` | Sottolineato |
+| Barrato | mark `strike` | `<w:strike/>` | Barrato |
 
 Uso gli stili **integrati** di Word (`Heading1/2`) e non stili personalizzati: così il riquadro di spostamento di Word e la struttura di Google Documenti mostrano i capitoli, e l'indice automatico funziona. ✅ Deciso.
 
@@ -44,18 +46,19 @@ Uso gli stili **integrati** di Word (`Heading1/2`) e non stili personalizzati: c
 File minimo e valido: `[Content_Types].xml`, `_rels/.rels`, `word/document.xml` con le sue relazioni (`word/_rels/document.xml.rels`), `word/styles.xml`, `word/settings.xml`, `docProps/core.xml` e `app.xml`. Lingua `it-IT` impostata negli stili, così anche il correttore di Word lavora in italiano. Pagina A4 con i margini predefiniti di Word in italiano, `compatibilityMode` 15 (niente "Modalità compatibilità"). Codice in `src-tauri/src/docx/`.
 
 Decisioni ✅:
-- **Font nel file: Georgia**, presente in Word (Windows e Mac) e in Google Documenti, a prescindere dal font scelto a schermo. Il font dell'editor è solo una preferenza di visualizzazione.
-- **Paragrafi neutri:** né spaziatura prima/dopo né rientro della prima riga, interlinea singola, testo a 12 pt. L'impaginazione (es. per la stampa) si fa poi in Word con le impostazioni di paragrafo; la spaziatura che si vede nell'editor è solo a schermo.
+- **Un file nuovo è in Calibri**, un sans serif presente in Word (Windows e Mac) e in Google Documenti, a prescindere dal font scelto a schermo. Il font dell'editor è solo una preferenza di visualizzazione.
+- **Paragrafi con un po' d'aria:** testo a 12 pt, interlinea 1,25, 8 pt dopo ogni paragrafo, nessun rientro.
+- **Un file aperto conserva la sua impaginazione** (`src-tauri/src/docx/modello.rs`): il pacchetto originale resta com'è (stili, tema, margini, intestazioni e piè di pagina, copiati byte per byte) e si rigenera solo il corpo di `document.xml`. Paragrafi e testo portano con sé le proprietà originali (`w:pPr`, `w:rPr`), opache per l'editor; un paragrafo nuovo prende quelle del precedente, un titolo nuovo lo stile di titolo del file. Una riga che diventa Titolo o Sottotitolo (o torna a Testo) tiene le sue proprietà, e al salvataggio cambia solo lo stile: nell'editor `formato` resta com'era, quindi anche andata e ritorno non perdono nulla. Vale anche per Salva con nome e dopo un recupero. Ciò che l'avviso all'apertura dichiara perso (elenchi, interruzioni…) non si conserva. Una sottolineatura o un barrato originali (doppi, colorati) restano com'erano finché non li si toglie.
 - **Titolo** (`heading 1`): 22 pt grassetto, 24 pt prima e 6 dopo. **Sottotitolo** (`heading 2`): 14 pt corsivo, 6 pt prima e 18 dopo. Entrambi restano attaccati al paragrafo che segue.
 - Niente `.odt` per ora. Salvataggio **atomico** (scrivo su file temporaneo, poi rinomino) per non perdere mai un documento.
 
 ### Lettura (onestà sui limiti)
 "100% compatibile" vale in modo pieno per **i file creati da Screeve**. Un docx arbitrario può contenere tabelle, immagini, note, commenti, revisioni: Screeve non li mostra. Proposta:
-- importo testo, paragrafi, titoli, grassetto e corsivo;
+- importo testo, paragrafi, titoli, grassetto, corsivo, sottolineato e barrato;
 - lo stile si risolve tramite `styles.xml`, perché gli id possono essere localizzati (`Titolo1` in Word italiano): conta il **nome** dello stile (`heading 1`, `Title`, anche "Titolo 1"), poi `outlineLvl`, poi lo stile di base. `Title` e `Heading1` → Titolo; `Subtitle` e `Heading2` o inferiori → Sottotitolo;
 - grassetto e corsivo valgono anche quando arrivano dallo stile del carattere (es. "Enfasi grassetto") o da uno stile di paragrafo (es. "Citazione" in corsivo), e si spengono con `w:val="0"`/`"false"`; stili di paragrafo e di carattere si annullano a vicenda come in Word. Nei titoli lo stile del paragrafo non conta: il grassetto di un titolo è il suo aspetto, non una marcatura;
 - tabulazioni: quelle a inizio paragrafo (rientri fatti a mano) si tolgono, le altre restano. A capo manuale: nel testo divide il paragrafo, in un titolo diventa uno spazio. Campi (numeri di pagina, indici…): resta il risultato visibile. Revisioni: si legge il testo come se fossero accettate. Il testo delle tabelle diventa paragrafi;
-- se il file contiene altro (tabelle, immagini, caselle di testo, formule, note, commenti, revisioni, elenchi, intestazioni e piè di pagina, interruzioni di pagina, campi, collegamenti, sottolineature, simboli) lo conto e all'apertura mostro un avviso chiaro: *"Questo documento contiene elementi che Screeve non gestisce. 2 immagini e 1 tabella. Salvando andrebbero persi…"* con **Salva una copia** come scelta predefinita, per non distruggere mai l'originale. Anche chiudendo l'avviso con Esc il documento diventa una copia non ancora salvata.
+- se il file contiene altro (tabelle, immagini, caselle di testo, formule, note, commenti, revisioni, elenchi, interruzioni di pagina, campi, collegamenti, simboli) lo conto e all'apertura mostro un avviso chiaro: *"Questo documento contiene elementi che Screeve non gestisce. 2 immagini e 1 tabella. Salvando andrebbero persi…"* con **Salva una copia** come scelta predefinita, per non distruggere mai l'originale. Anche chiudendo l'avviso con Esc il documento diventa una copia non ancora salvata.
 
 ### Verifica della compatibilità
 - `cargo test` (in `src-tauri`): round-trip modello → docx → modello, XML ben formato, salvataggio atomico, e lettura di XML costruiti come quelli di Word in italiano, Google Documenti e LibreOffice, con il conteggio degli elementi non supportati.
@@ -74,10 +77,11 @@ Decisioni ✅:
 
 ## Interfaccia
 
-- **Barra in alto:** Titolo · Sottotitolo · Testo | G · C | Sinonimi. A sinistra il nome del file con lo stato (*salvato*, *modificato*, *non salvato*, ripetuto nel titolo della finestra con un pallino •), a destra il contatore dei refusi e due icone: **Impostazioni** e **Guida**.
-- **File:** Nuovo, Apri, Salva, Salva con nome, dal piccolo menu che si apre cliccando sul nome del file o con le scorciatoie. Prima di Nuovo, Apri o della chiusura della finestra con modifiche non salvate: *Salva · Non salvare · Annulla*. Si apre anche trascinando un .docx sulla finestra o sull'eseguibile, con "Apri con" o col doppio clic su un file associato (il percorso arriva come argomento da riga di comando). Domande e avvisi sono finestre dell'app, nello stile della pagina.
+- **Barra in alto:** Titolo · Sottotitolo · Testo | G · C · S · B | Sinonimi. A sinistra il nome del file con lo stato (*salvato*, *modificato*, *non salvato*, ripetuto nel titolo della finestra con un pallino •), a destra il contatore dei refusi e due icone: **Impostazioni** e **Guida**.
+- **File:** Nuovo, Apri, Salva, Salva con nome, dal piccolo menu che si apre cliccando sul nome del file o con le scorciatoie. Nello stesso menu gli ultimi 8 file aperti o salvati, il più recente in cima (in `screeve.json`): nome del file, percorso completo nel suggerimento; se un file non c'è più lo si dice e la voce sparisce. Prima di Nuovo, Apri o della chiusura della finestra con modifiche non salvate: *Salva · Non salvare · Annulla*. Si apre anche trascinando un .docx sulla finestra o sull'eseguibile, con "Apri con" o col doppio clic su un file associato (il percorso arriva come argomento da riga di comando). Domande e avvisi sono finestre dell'app, nello stile della pagina.
+- **Indice a sinistra** (pulsante in alto a sinistra o **Ctrl+\\**, ricordato tra le impostazioni): titoli e sottotitoli del documento, un clic ci porta il cursore, evidenziata la parte in cui si scrive. Da chiuso resta solo il pulsante. Se il documento non ha nessun titolo vero, l'indice riconosce le righe formattate a mano (`src/indice.ts`): brevi, senza punteggiatura finale, diverse dal testo principale per font, corpo, allineamento centrato o a destra, oppure tutte in grassetto; il solo corsivo non basta. Righe consecutive fanno una voce sola; oltre un quarto dei paragrafi non si mostra nulla. È un'euristica solo a schermo: il documento non cambia. Appena il documento ha un titolo vero valgono solo i titoli veri, quindi trasformare una di quelle righe in titolo fa sparire le altre voci riconosciute.
 - **Barra in basso:** parole, caratteri, tempo di lettura e lo zoom `− 100% +`.
-- **Caratteri, colonna verticale sul lato destro, nella parte bassa:** È « » «…». Quando il pannello Impostazioni è aperto restano coperti.
+- **Caratteri, colonna verticale sul lato destro, nella parte bassa:** È « » «…» —. Quando il pannello Impostazioni è aperto restano coperti.
 - Mentre si scrive, barre e caratteri si ritirano quasi del tutto.
 
 ## Impostazioni
@@ -85,6 +89,7 @@ Decisioni ✅:
 Pannello laterale che si apre dall'icona con i cursori (o **Ctrl+,**). Il testo si sposta di lato per restare visibile, così ogni modifica si vede subito.
 - **Font**, cinque, tutti a tratto pieno (niente filetti sottili): due classici, Literata (predefinito) e Libre Baskerville, e tre voci diverse per cambiare aria mentre si scrive: Zilla Slab (graziato squadrato), Atkinson Hyperlegible (senza grazie) e Courier Prime (macchina da scrivere; essendo monospaziato, a parità di colonna sta su ~55 caratteri per riga). **Ctrl+Maiusc+F** passa al font successivo senza aprire le impostazioni. Ogni font ha il suo corpo ideale, applicato quando lo si sceglie; poi si può regolare.
 - **Dimensione** di base (predefinita 19 px) e **larghezza della colonna** (predefinita ~65 caratteri per riga), con l'indicazione dei caratteri per riga effettivi.
+- **Macchina da scrivere** (spenta di default, `src/macchina.ts`): la riga corrente resta al centro della finestra mentre si scrive o si muove il cursore coi tasti; non salta con le selezioni col mouse né scorrendo a mano, e la pagina ha mezzo schermo di margine in cima e in fondo, così vale anche per la prima e l'ultima riga.
 - **Correzioni automatiche** attivabili e disattivabili.
 - **Ripristina predefiniti.**
 
@@ -115,6 +120,7 @@ Icona "i" in alto a destra (o **F1**): finestra sovrapposta, scorrevole, chiusa 
 | Azione | Tasti |
 |---|---|
 | Grassetto / Corsivo | Ctrl+B / Ctrl+I |
+| Sottolineato / Barrato | Ctrl+U / Ctrl+Maiusc+X |
 | Titolo / Sottotitolo / Testo | Ctrl+Alt+1 / Ctrl+Alt+2 / Ctrl+Alt+0 (come Word e Google Documenti) |
 | Racchiudi selezione in « » | Ctrl+Shift+' |
 | Prossimo refuso | F7 |
@@ -123,13 +129,14 @@ Icona "i" in alto a destra (o **F1**): finestra sovrapposta, scorrevole, chiusa 
 | Sinonimi della parola | Maiusc+F7 |
 | Ingrandisci / Rimpicciolisci / 100% | Ctrl++ / Ctrl+− / Ctrl+0 |
 | Font successivo | Ctrl+Maiusc+F |
+| Indice dei titoli | Ctrl+\\ |
 | Impostazioni | Ctrl+, |
 | Guida | F1 |
 | Chiudi pannelli e suggerimenti | Esc |
 | Salva / Apri / Nuovo | Ctrl+S / Ctrl+O / Ctrl+N |
 | Salva con nome | Ctrl+Maiusc+S |
 
-Correzioni automatiche mentre scrivi (disattivabili): `<<` → «, `>>` → », `E'` → È.
+Correzioni automatiche mentre scrivi (disattivabili): `<<` → «, `>>` → », `--` → —, `E'` → È.
 
 ## Aspetto
 
@@ -145,9 +152,10 @@ Correzioni automatiche mentre scrivi (disattivabili): `<<` → «, `>>` → », 
 3. ✅ **DOCX** — Nuovo/Apri/Salva/Salva con nome, scrittura e poi lettura, avviso sui contenuti non supportati, test di round-trip. Provato a mano in Word e Google Documenti. Menu File cliccabile sul nome del file.
 4. ✅ **Correttore** — spellbook + it_IT, decorazioni, popover, F7/Alt+Invio/Alt+2-5, Ignora, dizionario personale, regole italiane. Codice in `src-tauri/src/correttore/` e `src/correttore.ts`, test con `cargo test correttore`. Il dizionario personale sta già accanto all'eseguibile o in `%APPDATA%\Screeve` (`src-tauri/src/dati.rs`).
 5. ✅ **Sinonimi (MVP)** — thesaurus MyThes, popover con frecce/Invio/Esc, lemma dalla forma flessa con le regole SFX del dizionario al contrario più i singolari (case → casa, antiche → antico, brillavano → brillare, dirtelo → dire). Codice in `src-tauri/src/sinonimi/` e `src/sinonimi.ts`. Limiti: i passati remoti irregolari (corse → correre) non si trovano. Resta per dopo: sinonimi già flessi.
-6. **Rifinitura** — ✅ copia di sicurezza e recupero dopo un crash (`src-tauri/src/recupero.rs`: copia in `recupero/` nella cartella dei dati 2 s dopo l'ultima modifica, un lucchetto per sessione così due finestre non si confondono, il .docx non si tocca mai); ✅ impostazioni in `screeve.json` (il localStorage resta come copia per l'avvio); ✅ icona (le caporali « », da `app-icon.svg`); ✅ zip di distribuzione con le licenze (`npm run app:pacchetto`). Restano: file recenti, firma dell'eseguibile.
+6. **Rifinitura** — ✅ copia di sicurezza e recupero dopo un crash (`src-tauri/src/recupero.rs`: copia in `recupero/` nella cartella dei dati 2 s dopo l'ultima modifica, un lucchetto per sessione così due finestre non si confondono, il .docx non si tocca mai); ✅ impostazioni in `screeve.json` (il localStorage resta come copia per l'avvio); ✅ icona (le caporali « », da `app-icon.svg`); ✅ zip di distribuzione con le licenze (`npm run app:pacchetto`); ✅ file recenti. Resta: firma dell'eseguibile.
+7. ✅ **Versione 1.0.0** — titoli che conservano il formato della riga, file recenti, lineetta di dialogo, modalità macchina da scrivere.
 
-Idee per dopo (fuori dal minimo): modalità macchina da scrivere (riga corrente sempre al centro), focus sul paragrafo corrente, tema notte, lineetta di dialogo `—` con `--`, obiettivo di parole giornaliero, esportazione PDF/EPUB.
+Idee per dopo (fuori dal minimo): focus sul paragrafo corrente, tema notte, obiettivo di parole giornaliero, esportazione PDF/EPUB.
 
 ## Licenza ✅
 

@@ -6,6 +6,7 @@
 //! modello sa rappresentare e contiamo il resto, per avvisare chi scrive.
 
 mod lettura;
+mod modello;
 mod scrittura;
 #[cfg(test)]
 mod test;
@@ -16,6 +17,7 @@ use std::io::{Cursor, Write};
 use std::path::Path;
 
 pub use lettura::leggi;
+pub use modello::Modello;
 pub use scrittura::scrivi;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,6 +34,9 @@ pub struct Blocco {
     #[serde(default)]
     pub livello: u8,
     pub run: Vec<Run>,
+    /// l'interno del <w:pPr> originale; solo per i file aperti (vedi modello.rs)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub formato: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -41,6 +46,13 @@ pub struct Run {
     pub grassetto: bool,
     #[serde(default)]
     pub corsivo: bool,
+    #[serde(default)]
+    pub sottolineato: bool,
+    #[serde(default)]
+    pub barrato: bool,
+    /// l'interno del <w:rPr> originale, senza grassetto e corsivo
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub formato: Option<String>,
 }
 
 /// Un tipo di elemento che Screeve non gestisce, trovato nel file aperto. La chiave
@@ -60,11 +72,11 @@ pub struct Documento {
 
 impl Blocco {
     pub fn paragrafo(run: Vec<Run>) -> Self {
-        Blocco { tipo: Tipo::Paragrafo, livello: 0, run }
+        Blocco { tipo: Tipo::Paragrafo, livello: 0, run, formato: None }
     }
 
     pub fn titolo(livello: u8, run: Vec<Run>) -> Self {
-        Blocco { tipo: Tipo::Titolo, livello, run }
+        Blocco { tipo: Tipo::Titolo, livello, run, formato: None }
     }
 
     /// 1 o 2 per i titoli, 0 per i paragrafi; un livello fuori misura diventa Sottotitolo.
@@ -78,25 +90,45 @@ impl Blocco {
 
 impl Run {
     pub fn new(testo: &str, grassetto: bool, corsivo: bool) -> Self {
-        Run { testo: testo.into(), grassetto, corsivo }
+        Run { testo: testo.into(), grassetto, corsivo, sottolineato: false, barrato: false, formato: None }
+    }
+
+    /// Stessi grassetto, corsivo, sottolineato e barrato.
+    pub fn stesso_aspetto(&self, altro: &Run) -> bool {
+        (self.grassetto, self.corsivo, self.sottolineato, self.barrato)
+            == (altro.grassetto, altro.corsivo, altro.sottolineato, altro.barrato)
     }
 }
 
-/// Apre un file .docx dal disco.
-pub fn apri(percorso: &Path) -> Result<Documento, String> {
+/// Apre un file .docx dal disco: il documento, e il modello per risalvarlo con la sua
+/// impaginazione.
+pub fn apri(percorso: &Path) -> Result<(Documento, Option<Modello>), String> {
     let nome = nome_file(percorso);
     let dati = fs::read(percorso).map_err(|e| format!("Non riesco a leggere «{nome}»: {}", errore_io(&e)))?;
-    leggi(Cursor::new(dati)).map_err(|e| format!("Non riesco ad aprire «{nome}»: {e}"))
+    let documento = leggi(Cursor::new(&dati)).map_err(|e| format!("Non riesco ad aprire «{nome}»: {e}"))?;
+    Ok((documento, Modello::nuovo(dati)))
+}
+
+/// Il modello di un file già su disco, per un documento recuperato dopo un crash.
+pub fn modello_da(percorso: &Path) -> Option<Modello> {
+    Modello::nuovo(fs::read(percorso).ok()?)
 }
 
 /// Salva in modo atomico: scrive accanto al file un temporaneo e poi lo rinomina sopra
 /// l'originale, così un errore a metà non lascia mai un documento troncato.
-pub fn salva(percorso: &Path, blocchi: &[Blocco]) -> Result<(), String> {
+pub fn salva(percorso: &Path, blocchi: &[Blocco], modello: Option<&Modello>) -> Result<(), String> {
     let nome = nome_file(percorso);
     let errore = |e: std::io::Error| format!("Non riesco a salvare «{nome}»: {}", errore_io(&e));
 
     let mut dati = Cursor::new(Vec::new());
-    scrivi(&mut dati, blocchi).map_err(|e| format!("Non riesco a salvare «{nome}»: {e}"))?;
+    match modello {
+        Some(m) => m.scrivi(&mut dati, blocchi),
+        None => scrivi(&mut dati, blocchi),
+    }
+    .map_err(|e| format!("Non riesco a salvare «{nome}»: {e}"))?;
+    // meglio un errore che un documento illeggibile: il file sul disco resta com'era
+    dati.set_position(0);
+    leggi(&mut dati).map_err(|e| format!("Non riesco a salvare «{nome}»: {e}"))?;
 
     let cartella = match percorso.parent() {
         Some(c) if !c.as_os_str().is_empty() => c,

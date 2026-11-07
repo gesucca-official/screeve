@@ -1,8 +1,11 @@
 import { Schema, type DOMOutputSpec } from 'prosemirror-model';
 
 // Lo schema ammette solo ciò che il docx sa rappresentare: titolo, sottotitolo,
-// paragrafo, grassetto e corsivo. Tutto il resto (anche se incollato) si perde qui,
+// paragrafo, grassetto, corsivo, sottolineato e barrato. Tutto il resto (anche se incollato) si perde qui,
 // non nel file.
+// In più, invisibile: `formato` è l'aspetto che paragrafi e testo avevano nel file
+// aperto (XML opaco per src-tauri/src/docx/modello.rs). Non si legge dal DOM, quindi
+// non arriva mai da ciò che si incolla.
 export const schema = new Schema({
   nodes: {
     doc: { content: 'block+' },
@@ -12,6 +15,7 @@ export const schema = new Schema({
       group: 'block',
       content: 'text*',
       marks: '_',
+      attrs: { formato: { default: null } },
       parseDOM: [{ tag: 'p' }],
       toDOM: (): DOMOutputSpec => ['p', 0],
     },
@@ -22,7 +26,7 @@ export const schema = new Schema({
       content: 'text*',
       marks: '_',
       defining: true,
-      attrs: { level: { default: 1, validate: 'number' } },
+      attrs: { level: { default: 1, validate: 'number' }, formato: { default: null } },
       parseDOM: [
         { tag: 'h1', attrs: { level: 1 } },
         { tag: 'h2', attrs: { level: 2 } },
@@ -57,6 +61,32 @@ export const schema = new Schema({
         { style: 'font-style=normal', clearMark: m => m.type.name === 'em' },
       ],
       toDOM: (): DOMOutputSpec => ['em', 0],
+    },
+
+    underline: {
+      parseDOM: [
+        { tag: 'u' },
+        { tag: 'ins' },
+        { style: 'text-decoration', getAttrs: value => value.includes('underline') && null },
+        { style: 'text-decoration-line', getAttrs: value => value.includes('underline') && null },
+      ],
+      toDOM: (): DOMOutputSpec => ['u', 0],
+    },
+
+    strike: {
+      parseDOM: [
+        { tag: 's' },
+        { tag: 'strike' },
+        { tag: 'del' },
+        { style: 'text-decoration', getAttrs: value => value.includes('line-through') && null },
+        { style: 'text-decoration-line', getAttrs: value => value.includes('line-through') && null },
+      ],
+      toDOM: (): DOMOutputSpec => ['s', 0],
+    },
+
+    formato: {
+      attrs: { xml: {} },
+      toDOM: (): DOMOutputSpec => ['span', 0],
     },
   },
 });

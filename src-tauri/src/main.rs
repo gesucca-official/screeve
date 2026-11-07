@@ -13,16 +13,43 @@ use correttore::{Correttore, Refuso};
 use recupero::{Copia, Orfana, Sessione};
 use sinonimi::{Sinonimi, Voce};
 use std::path::PathBuf;
+use std::sync::Mutex;
 use tauri::{Emitter, Manager, RunEvent, State};
 
-#[tauri::command]
-async fn apri_docx(percorso: String) -> Result<docx::Documento, String> {
-    docx::apri(&PathBuf::from(percorso))
+/// Il file aperto, che fa da modello per salvarlo con la sua impaginazione.
+#[derive(Default)]
+struct ModelloCorrente(Mutex<Option<docx::Modello>>);
+
+impl ModelloCorrente {
+    fn imposta(&self, modello: Option<docx::Modello>) {
+        *self.0.lock().unwrap_or_else(|e| e.into_inner()) = modello;
+    }
 }
 
 #[tauri::command]
-async fn salva_docx(percorso: String, blocchi: Vec<docx::Blocco>) -> Result<(), String> {
-    docx::salva(&PathBuf::from(percorso), &blocchi)
+async fn apri_docx(percorso: String, modello: State<'_, ModelloCorrente>) -> Result<docx::Documento, String> {
+    let (documento, nuovo) = docx::apri(&PathBuf::from(percorso))?;
+    modello.imposta(nuovo);
+    Ok(documento)
+}
+
+#[tauri::command]
+async fn salva_docx(percorso: String, blocchi: Vec<docx::Blocco>, modello: State<'_, ModelloCorrente>) -> Result<(), String> {
+    let modello = modello.0.lock().unwrap_or_else(|e| e.into_inner());
+    docx::salva(&PathBuf::from(percorso), &blocchi, modello.as_ref())
+}
+
+/// Nuovo documento: si salverà con l'impaginazione di Screeve.
+#[tauri::command]
+fn dimentica_modello(modello: State<'_, ModelloCorrente>) {
+    modello.imposta(None);
+}
+
+/// Dopo un crash: l'impaginazione viene di nuovo dal file di partenza, se c'è ancora.
+#[tauri::command]
+async fn riprendi_modello(percorso: String, modello: State<'_, ModelloCorrente>) -> Result<(), String> {
+    modello.imposta(docx::modello_da(&PathBuf::from(percorso)));
+    Ok(())
 }
 
 /// Il file passato da riga di comando: "Apri con", doppio clic su un .docx associato
@@ -32,6 +59,12 @@ fn file_iniziale() -> Option<String> {
     let percorso = PathBuf::from(std::env::args_os().nth(1)?);
     let percorso = std::path::absolute(&percorso).unwrap_or(percorso);
     percorso.is_file().then(|| percorso.to_string_lossy().into_owned())
+}
+
+/// Una voce dei file recenti c'è ancora?
+#[tauri::command]
+fn file_esiste(percorso: String) -> bool {
+    PathBuf::from(percorso).is_file()
 }
 
 /// I refusi di ogni paragrafo; `None` finché il dizionario non è caricato.
@@ -114,6 +147,7 @@ fn carica_dizionari(app: tauri::AppHandle) {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .manage(ModelloCorrente::default())
         .manage(Caricato::<Correttore>::default())
         .manage(Caricato::<Sinonimi>::default())
         .manage(dati::cartella_dati().map(|d| Sessione::nuova(d.join("recupero"))))
@@ -125,7 +159,10 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             apri_docx,
             salva_docx,
+            dimentica_modello,
+            riprendi_modello,
             file_iniziale,
+            file_esiste,
             controlla,
             suggerisci,
             aggiungi_parola,

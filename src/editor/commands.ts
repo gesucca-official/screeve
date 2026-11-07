@@ -1,5 +1,5 @@
-import { setBlockType, toggleMark } from 'prosemirror-commands';
-import type { MarkType } from 'prosemirror-model';
+import { toggleMark } from 'prosemirror-commands';
+import type { Attrs, MarkType, NodeType } from 'prosemirror-model';
 import { Selection, TextSelection, type Command, type EditorState, type Transaction } from 'prosemirror-state';
 import { schema } from './schema';
 
@@ -16,14 +16,42 @@ export function currentBlock(state: EditorState): Block {
 export function setBlock(block: Block): Command {
   return (state, dispatch) => {
     const target = block !== 'p' && currentBlock(state) === block ? 'p' : block;
+    // Testo su ciò che è già testo non fa nulla: non deve cancellarne l'aspetto originale
+    if (target === 'p' && onlyParagraphs(state)) return true;
     return target === 'p'
-      ? setBlockType(schema.nodes.paragraph)(state, dispatch)
-      : setBlockType(schema.nodes.heading, { level: target === 'h1' ? 1 : 2 })(state, dispatch);
+      ? cambiaTipo(schema.nodes.paragraph, {})(state, dispatch)
+      : cambiaTipo(schema.nodes.heading, { level: target === 'h1' ? 1 : 2 })(state, dispatch);
   };
+}
+
+// Come setBlockType, che però azzera gli attributi: qui ogni blocco tiene il suo
+// `formato`. Lo stile giusto per il nuovo tipo lo mette chi scrive il file (modello.rs).
+function cambiaTipo(tipo: NodeType, attrs: Attrs): Command {
+  return (state, dispatch) => {
+    const tr = state.tr;
+    for (const { $from, $to } of state.selection.ranges) {
+      tr.setBlockType($from.pos, $to.pos, tipo, n => ({ ...attrs, formato: n.attrs.formato ?? null }));
+    }
+    if (!tr.docChanged) return false;
+    dispatch?.(tr.scrollIntoView());
+    return true;
+  };
+}
+
+function onlyParagraphs(state: EditorState): boolean {
+  let only = true;
+  const { from, to } = state.selection;
+  state.doc.nodesBetween(from, to, n => {
+    if (n.isTextblock && n.type !== schema.nodes.paragraph) only = false;
+    return !n.isTextblock;
+  });
+  return only;
 }
 
 export const toggleStrong = toggleMark(schema.marks.strong);
 export const toggleEm = toggleMark(schema.marks.em);
+export const toggleUnderline = toggleMark(schema.marks.underline);
+export const toggleStrike = toggleMark(schema.marks.strike);
 
 // Il mark è attivo dove sta il cursore, o su tutta la selezione?
 export function markActive(state: EditorState, type: MarkType): boolean {

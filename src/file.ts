@@ -14,7 +14,7 @@ import { aDoc, daDoc, docVuoto, type Blocco } from './documento';
 // dopo l'ultima modifica; dopo un crash, all'avvio si propone di riaprirla.
 
 interface Apertura { blocchi: Blocco[]; nonSupportati: { elemento: string; quanti: number }[] }
-interface Copia { percorso: string | null; nome: string; daSalvare: boolean; blocchi: Blocco[]; quando: number }
+interface Copia { percorso: string | null; nome: string; origine: string | null; daSalvare: boolean; blocchi: Blocco[]; quando: number }
 
 const ATTESA_COPIA = 2000;  // ms dopo l'ultima modifica
 
@@ -31,11 +31,9 @@ const ELEMENTI: Record<string, [string, string]> = {
   commenti: ['commento', 'commenti'],
   revisioni: ['revisione', 'revisioni'],
   elenchi: ['voce di elenco', 'voci di elenco'],
-  intestazioni: ['intestazione o piè di pagina', 'intestazioni e piè di pagina'],
   interruzioni: ['interruzione di pagina', 'interruzioni di pagina'],
   campi: ['campo', 'campi'],
   collegamenti: ['collegamento', 'collegamenti'],
-  sottolineature: ['parte sottolineata o barrata', 'parti sottolineate o barrate'],
   simboli: ['simbolo', 'simboli'],
 };
 
@@ -43,13 +41,16 @@ export interface FileOptions {
   view: EditorView;
   flash: (testo: string) => void;
   sostituisci: (doc: Node) => void;  // mette il documento nell'editor
+  ricorda: (percorso: string) => void;   // file aperto o salvato: va in cima ai recenti
+  dimentica: (percorso: string) => void; // esce dai recenti
 }
 
-export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
+export function gestioneFile({ view, flash, sostituisci, ricorda, dimentica }: FileOptions) {
   const app = isTauri();
   let percorso: string | null = null;
   let nome = 'Senza titolo';
   let salvato: Node = view.state.doc;  // il documento com'era all'ultimo salvataggio
+  let origine: string | null = null;   // il file aperto, da cui viene l'impaginazione
   let daSalvare = false;               // copia di un file con elementi persi: non esiste ancora su disco
   let modificato = false;
   let occupato = false;
@@ -81,7 +82,7 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
   /* ---------- copia di sicurezza ---------- */
   function copia(): void {
     if (modificato) {
-      const c: Copia = { percorso, nome, daSalvare, blocchi: daDoc(view.state.doc), quando: Date.now() };
+      const c: Copia = { percorso, nome, origine, daSalvare, blocchi: daDoc(view.state.doc), quando: Date.now() };
       invoke('salva_copia', { copia: c }).then(() => { copiaScritta = true; }, e => flash(String(e)));
     } else if (copiaScritta) {
       copiaScritta = false;
@@ -104,6 +105,8 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
     if (scelta === 'dopo') return;
     if (scelta === 'riapri') {
       carica(aDoc(c.blocchi), c.percorso);
+      origine = c.origine;
+      if (origine) await invoke('riprendi_modello', { percorso: origine });
       nome = c.nome;
       daSalvare = c.daSalvare;
       salvato = docVuoto();  // tutto il testo recuperato è da salvare
@@ -158,6 +161,7 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
     salvato = doc;  // se nel frattempo hai scritto ancora, resta "modificato"
     daSalvare = false;
     aggiorna();
+    ricorda(dove);
     flash('Salvato');
     return true;
   }
@@ -193,7 +197,21 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
       return;
     }
     carica(aDoc(letto.blocchi), scelto);
+    origine = scelto;
+    ricorda(scelto);
     if (letto.nonSupportati.length) await avvisa(letto.nonSupportati, scelto);
+  }
+
+  // Una voce dei file recenti: se il file non c'è più è inutile chiedere di salvare.
+  async function apriRecenteQui(da: string): Promise<void> {
+    if (await invoke<boolean>('file_esiste', { percorso: da })) return apriQui(da);
+    dimentica(da);
+    await chiedi(
+      `«${baseName(da)}» non si trova più`,
+      `Non è più in ${cartella(da) ?? da}: forse è stato spostato o cancellato, oppure è su un disco scollegato. L'ho tolto dai file recenti.`,
+      [{ etichetta: 'OK', valore: null }],
+      null,
+    );
   }
 
   // L'originale non si sovrascrive per sbaglio: la scelta predefinita è salvarne una copia.
@@ -227,7 +245,10 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
   }
 
   const nuovoQui = async () => {
-    if (await conferma()) carica(docVuoto(), null);
+    if (!(await conferma())) return;
+    carica(docVuoto(), null);
+    origine = null;
+    await invoke('dimentica_modello');
   };
 
   /* ---------- avvio ---------- */
@@ -267,6 +288,7 @@ export function gestioneFile({ view, flash, sostituisci }: FileOptions) {
   return {
     nuovo: una(nuovoQui, undefined),
     apri,
+    apriRecente: una(apriRecenteQui, undefined),
     salva: una(salvaQui, false),
     salvaConNome: una(salvaConNomeQui, false),
     aggiorna,

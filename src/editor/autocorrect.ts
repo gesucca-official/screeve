@@ -21,6 +21,7 @@ export function autocorrect({ enabled, onApply }: AutocorrectOptions): Plugin {
     rules: [
       rule(/<<$/, '<< → «', () => '«'),
       rule(/>>$/, '>> → »', () => '»'),
+      rule(/--$/, '-- → —', () => '—'),
       // E' all'inizio di una parola, seguito da spazio o punteggiatura
       rule(/(?<=^|[\s«"‹(—])E['’]([\s.,;:!?»›)])$/, "E' → È", m => 'È' + m[1]),
     ],
